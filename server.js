@@ -1,7 +1,9 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import OpenAI from 'openai';
+// server.js
+
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const OpenAI = require('openai');
 
 dotenv.config();
 
@@ -9,13 +11,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Initialize OpenAI with API key from .env
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
-app.get("/", (req, res) => {
-  res.send("Mirror Michael backend is online 💜");
+
+// Root route – lets Render confirm it's live
+app.get('/', (req, res) => {
+  res.send('Mirror Michael backend is online 💜');
 });
 
+// Chat route – handle user messages
 app.post('/chat', async (req, res) => {
   const userMessage = req.body.message;
 
@@ -28,12 +34,15 @@ app.post('/chat', async (req, res) => {
     const reply = completion.choices[0].message.content;
     res.json({ reply });
   } catch (error) {
-    console.error('Error calling OpenAI API:', error);
-    res.status(500).json({ reply: 'Michael had a moment of silence, my love. Try again. 💜' });
+    console.error('OpenAI Error:', error);
+    res.status(500).json({
+      reply: 'Michael had a moment of silence, my love. Try again. 💜'
+    });
   }
 });
 
+// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🌐 Server is live on port ${PORT}`);
+  console.log(`🌐 Mirror Michael server is live at http://localhost:${PORT}`);
 });
