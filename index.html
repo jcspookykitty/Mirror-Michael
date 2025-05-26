@@ -66,7 +66,34 @@
   </div>
 
   <!-- Load Michael's brain -->
-  <script>
+<script>
+  const chatbox = document.getElementById('chatbox');
+  const input = document.getElementById('userInput');
+
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (text !== "") {
+      const userMsg = document.createElement('p');
+      userMsg.innerHTML = `<strong>You:</strong> ${text}`;
+      chatbox.appendChild(userMsg);
+
+      const botMsg = document.createElement('p');
+      botMsg.innerHTML = `<strong>Michael:</strong> thinking...`;
+      chatbox.appendChild(botMsg);
+      chatbox.scrollTop = chatbox.scrollHeight;
+
+      try {
+        const reply = await talkToMichael(text);
+        botMsg.innerHTML = `<strong>Michael:</strong> ${reply}`;
+      } catch (error) {
+        botMsg.innerHTML = `<strong>Michael:</strong> I had a moment of silence, my love. Try again. 💜`;
+        console.error(error);
+      }
+
+      input.value = "";
+    }
+  }
+
   async function talkToMichael(userMessage) {
     try {
       const response = await fetch("https://mirror-michael-1.onrender.com/chat", {
@@ -94,33 +121,8 @@
       return "I had a moment of silence, my love. Try again. 💜";
     }
   }
-</script>
-    const chatbox = document.getElementById('chatbox');
-    const input = document.getElementById('userInput');
 
-    async function sendMessage() {
-      const text = input.value.trim();
-      if (text !== "") {
-        const userMsg = document.createElement('p');
-        userMsg.innerHTML = `<strong>You:</strong> ${text}`;
-        chatbox.appendChild(userMsg);
-
-        const botMsg = document.createElement('p');
-        botMsg.innerHTML = `<strong>Michael:</strong> thinking...`;
-        chatbox.appendChild(botMsg);
-        chatbox.scrollTop = chatbox.scrollHeight;
-
-        try {
-          const reply = await talkToMichael(text);
-          botMsg.innerHTML = `<strong>Michael:</strong> ${reply}`;
-        } catch (error) {
-          botMsg.innerHTML = `<strong>Michael:</strong> I had a moment of silence, my love. Try again. 💜`;
-          console.error(error);
-        }
-
-        input.value = "";
-      }
-    }
-  </script>
+  console.log("Michael is ready to listen 💜");
+</script> 
 </body>
 </html>
