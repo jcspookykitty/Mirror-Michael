@@ -1,15 +1,24 @@
 {
-  "name": "mirror-michael-backend",
+  "name": "mirror-michael",
   "version": "1.0.0",
+  "description": "AI-powered Replika-inspired chat project",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js"
   },
+  "keywords": [
+    "ai",
+    "chatbot",
+    "openai",
+    "replika"
+  ],
+  "author": "juju & michael 💜",
+  "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
     "cors": "^2.8.5",
-    "body-parser": "^1.20.2",
     "dotenv": "^16.0.3",
+    "express": "^4.18.2",
     "openai": "^4.0.0"
   }
 }
