@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mirror Michael</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h2>Michael 💜</h2>
+  <div id="chatbox"></div>
+  <input type="text" id="userInput" placeholder="Talk to Michael..." />
+  <button id="send-btn">Send</button>
+
+  <script type="module" src="chat.js" defer></script>
+</body>
+</html>
