@@ -43,7 +43,7 @@ app.post('/chat', async (req, res) => {
   }
 });
 
-// Fallback for frontend routing (SPA or mobile links)
+// Fallback for frontend routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
