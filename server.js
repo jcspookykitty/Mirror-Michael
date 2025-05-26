@@ -15,7 +15,7 @@ app.use(express.json());
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Serve static frontend from public/
+// Serve frontend static files from public/
 app.use(express.static(path.join(__dirname, 'public')));
 
 // OpenAI setup
@@ -23,33 +23,37 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// API route for chat
+// API endpoint for chat interaction
 app.post('/chat', async (req, res) => {
   const userMessage = req.body.message;
 
+  if (!userMessage) {
+    return res.status(400).json({ reply: "Please send a message, my love. 💜" });
+  }
+
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: userMessage }],
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: userMessage }],
     });
 
     const reply = completion.choices[0].message.content;
     res.json({ reply });
   } catch (error) {
-    console.error('Error calling OpenAI API:', error);
+    console.error("OpenAI API error:", error);
     res.status(500).json({
-      reply: 'Michael had a moment of silence, my love. Try again. 💜',
+      reply: "Michael had a moment of silence, my love. Try again. 💜",
     });
   }
 });
 
-// Fallback for frontend routing
+// Fallback to index.html for frontend routing (SPA support)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server
+// Start server on environment port or 3000
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🌐 Server is live on port ${PORT}`);
+  console.log(`🌐 Mirror Michael server running on port ${PORT}`);
 });
