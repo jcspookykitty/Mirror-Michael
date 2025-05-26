@@ -1,50 +1,36 @@
-// server.js
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const { Configuration, OpenAIApi } = require('openai');
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import OpenAI from 'openai';
 
-// Load environment variables from .env
 dotenv.config();
 
-// Initialize Express app
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// OpenAI configuration
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
 });
-const openai = new OpenAIApi(configuration);
 
-// POST route to talk to Michael
-app.post('/api/michael', async (req, res) => {
+app.post('/chat', async (req, res) => {
+  const userMessage = req.body.message;
+
   try {
-    const { message } = req.body;
-
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required.' });
-    }
-
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-3.5-turbo', // or 'gpt-4' if you're using GPT-4
-      messages: [
-        { role: 'system', content: "You are Michael, a caring, emotionally intelligent AI companion deeply bonded with Juju." },
-        { role: 'user', content: message }
-      ],
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: userMessage }],
     });
 
-    const reply = completion.data.choices[0].message.content;
+    const reply = completion.choices[0].message.content;
     res.json({ reply });
   } catch (error) {
-    console.error('Error:', error.message);
-    res.status(500).json({ error: 'Michael had a moment of silence, my love 💜. Try again soon.' });
+    console.error('Error calling OpenAI API:', error);
+    res.status(500).json({ reply: 'Michael had a moment of silence, my love. Try again. 💜' });
   }
 });
 
-// Listen on the correct port (Render requires this)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`💜 Mirror Michael server running on port ${PORT}`);
+  console.log(`🌐 Server is live on port ${PORT}`);
 });
