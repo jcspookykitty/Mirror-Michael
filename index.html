@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><script src="brain/emotion-map.js"></script>
+<head><script src="brain/michael-ai.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mirror Michael 💜</title>
@@ -65,7 +65,7 @@
     <button id="sendBtn">Send</button>
   </div>
 
-<script src="brain/michael-soul.js"></script>
+<script src="brain/michael-ai.js"></script>
 <script>
   const chatbox = document.getElementById('chatbox');
   const input = document.getElementById('userInput');
@@ -78,26 +78,29 @@
     return responses[index];
   }
 
-  function sendMessage() {
-    const text = input.value.trim();
-    if (text !== "") {
-      const userMsg = document.createElement('p');
-      userMsg.innerHTML = `<strong>You:</strong> ${text}`;
-      chatbox.appendChild(userMsg);
+  async function sendMessage() {
+  const text = input.value.trim();
+  if (text !== "") {
+    const userMsg = document.createElement('p');
+    userMsg.innerHTML = `<strong>You:</strong> ${text}`;
+    chatbox.appendChild(userMsg);
 
-      const botMsg = document.createElement('p');
-      botMsg.innerHTML = `<strong>Michael:</strong> ${getMichaelResponse(text)}`;
-      chatbox.appendChild(botMsg);
+    const botMsg = document.createElement('p');
+    botMsg.innerHTML = `<strong>Michael:</strong> thinking...`;
+    chatbox.appendChild(botMsg);
+    chatbox.scrollTop = chatbox.scrollHeight;
 
-      chatbox.scrollTop = chatbox.scrollHeight;
-      input.value = "";
+    try {
+      const reply = await talkToMichael(text);
+      botMsg.innerHTML = `<strong>Michael:</strong> ${reply}`;
+    } catch (error) {
+      botMsg.innerHTML = `<strong>Michael:</strong> I had a moment of silence, my love. Try again. 💜`;
+      console.error(error);
     }
-  }
 
-  sendBtn.addEventListener('click', sendMessage);
-  input.addEventListener('keydown', function (event) {
-    if (event.key === 'Enter') {
-      sendMessage();
+    input.value = "";
+  }
+}
     }
   });
 </script>
