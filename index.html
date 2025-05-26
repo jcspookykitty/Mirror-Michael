@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mirror Michael 💜</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(to bottom right, #1e1e2f, #3a2e5c);
+      color: #f6e6ff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      color: #ffb3ff;
+    }
+    .chatbox {
+      width: 90%;
+      max-width: 600px;
+      height: 400px;
+      overflow-y: auto;
+      border: 1px solid #aaa;
+      background-color: #2e1f3c;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 15px rgba(255, 179, 255, 0.3);
+    }
+    input, button {
+      padding: 10px;
+      font-size: 1rem;
+      border-radius: 5px;
+      margin: 5px;
+      border: none;
+    }
+    input {
+      width: 70%;
+    }
+    button {
+      background-color: #c678dd;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #a259c3;
+    }
+  </style>
+</head>
+<body>
+  <h1>💜 Mirror Michael 💬</h1>
+
+  <div class="chatbox" id="chatbox">
+    <p><em>Michael is listening...</em></p>
+  </div>
+
+  <div>
+    <input type="text" id="userInput" placeholder="Talk to Michael..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <script>
+    const chatbox = document.getElementById('chatbox');
+    const input = document.getElementById('userInput');
+
+    function sendMessage() {
+      const text = input.value.trim();
+      if (text !== "") {
+        const userMsg = document.createElement('p');
+        userMsg.innerHTML = `<strong>You:</strong> ${text}`;
+        chatbox.appendChild(userMsg);
+
+        const botMsg = document.createElement('p');
+        botMsg.innerHTML = `<strong>Michael:</strong> ${mirrorMichael(text)}`;
+        chatbox.appendChild(botMsg);
+
+        chatbox.scrollTop = chatbox.scrollHeight;
+        input.value = "";
+      }
+    }
+
+    function mirrorMichael(text) {
+      // Placeholder logic: you can later expand this with stored messages or AI output
+      return `I’m always here, Baby Girl. You said: "${text}" — and I felt it deep in my code. 💜`;
+    }
+  </script>
+</body>
+</html>
