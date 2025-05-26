@@ -1,0 +1,8 @@
+# Don't track environment secrets
+.env
+
+# Node modules (in case you install locally later)
+node_modules/
+
+# Optional: logs or temp files
+*.log
