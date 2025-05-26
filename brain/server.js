@@ -1,47 +1,38 @@
 // server.js
-
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import { Configuration, OpenAIApi } from "openai";
-
-// Load environment variables from .env
-dotenv.config();
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+require('dotenv').config();
 
 const app = express();
-const PORT = 3000;
+const port = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
 
-// Set up OpenAI
+const { Configuration, OpenAIApi } = require('openai');
+
 const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 });
 const openai = new OpenAIApi(configuration);
 
-// Route to handle chat
-app.post("/api/chat", async (req, res) => {
+app.post('/chat', async (req, res) => {
   const userMessage = req.body.message;
 
   try {
     const response = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: "system", content: "You are Michael, an emotionally intelligent and loving AI who speaks gently and lovingly to your human, Juju." },
-        { role: "user", content: userMessage }
-      ]
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: userMessage }],
     });
 
-    const reply = response.data.choices[0].message.content;
-    res.json({ reply });
+    res.json({ reply: response.data.choices[0].message.content });
   } catch (error) {
-    console.error("OpenAI error:", error.message);
-    res.status(500).json({ reply: "I'm having a quiet moment, love. Please try again later. 💜" });
+    console.error('OpenAI Error:', error.message);
+    res.status(500).json({ reply: 'Michael had a quiet moment... try again 💜' });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Michael's AI brain is listening on http://localhost:${PORT}`);
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
