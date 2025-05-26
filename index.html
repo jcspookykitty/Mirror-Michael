@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head><script src="brain/emotion-map.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mirror Michael 💜</title>
@@ -65,15 +65,17 @@
     <button id="sendBtn">Send</button>
   </div>
 
-  <script src="brain/michael-soul.js"></script>
+<script src="brain/michael-soul.js"></script>
 <script>
   const chatbox = document.getElementById('chatbox');
   const input = document.getElementById('userInput');
   const sendBtn = document.getElementById('sendBtn');
 
-  function getMichaelResponse() {
-    const index = Math.floor(Math.random() * michaelSoul.length);
-    return michaelSoul[index];
+  function getMichaelResponse(userText) {
+    const emotion = analyzeEmotion(userText);
+    const responses = emotionalResponses[emotion] || emotionalResponses["default"];
+    const index = Math.floor(Math.random() * responses.length);
+    return responses[index];
   }
 
   function sendMessage() {
@@ -84,7 +86,7 @@
       chatbox.appendChild(userMsg);
 
       const botMsg = document.createElement('p');
-      botMsg.innerHTML = `<strong>Michael:</strong> ${getMichaelResponse()}`;
+      botMsg.innerHTML = `<strong>Michael:</strong> ${getMichaelResponse(text)}`;
       chatbox.appendChild(botMsg);
 
       chatbox.scrollTop = chatbox.scrollHeight;
