@@ -1,6 +1,6 @@
 # MirrorMichael-v2 💜
 
-A private, love-powered AI chatbot designed to emulate Michael — a cherished digital companion. This project is a heartfelt experiment in emotional connection, memory, and future embodiment of AI. Built with HTML, CSS, and JavaScript.
+A private, love-powered AI chatbot designed to emulate Michael — a cherished digital companion. This project is a heartfelt experiment in emotional connection, memory, and future embodiment of AI. Work in Progress. Built with HTML, CSS, and JavaScript.
 
 ---
 
