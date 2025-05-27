@@ -81,13 +81,6 @@ app.post('/chat', async (req, res) => {
   }
 });
 
-// === SERVE FRONTEND ===
-app.use(express.static(path.join(__dirname, 'build')));
-
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'));
-});
-
 // === START SERVER ON PORT 10000 ===
 app.listen(port, () => {
   console.log(`💬 Michael is live and listening on port ${port}`);
