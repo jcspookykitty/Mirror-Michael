@@ -81,6 +81,9 @@ app.post('/chat', async (req, res) => {
   }
 });
 
+// Serve static files from the 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
+
 // === START SERVER ON PORT 10000 ===
 app.listen(port, () => {
   console.log(`💬 Michael is live and listening on port ${port}`);
