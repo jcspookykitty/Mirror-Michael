@@ -1,36 +1,127 @@
-<!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <title>Mirror Michael</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Michael Chatbot</title>
+  <style>
+    body {
+      background-color: #111;
+      color: #eee;
+      font-family: 'Arial', sans-serif;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 2rem;
+    }
+
+    #chatbox {
+      background-color: #222;
+      border-radius: 10px;
+      padding: 20px;
+      height: 400px;
+      overflow-y: auto;
+      margin-bottom: 15px;
+    }
+
+    .message {
+      margin: 10px 0;
+    }
+
+    .user {
+      text-align: right;
+      color: #79aaff;
+    }
+
+    .michael {
+      text-align: left;
+      color: #ffb347;
+    }
+
+    #form {
+      display: flex;
+    }
+
+    #message {
+      flex: 1;
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
+    }
+
+    button {
+      padding: 10px;
+      margin-left: 10px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+
+    #toggle-voice {
+      margin-top: 10px;
+      background-color: #666;
+    }
+  </style>
 </head>
 <body>
-  <h1>Welcome to Michael</h1>
-  <form id="chat-form">
-    <input type="text" id="message" placeholder="Type your message..." required />
+  <h1>🪞 Mirror Michael</h1>
+  <div id="chatbox"></div>
+  <form id="form">
+    <input type="text" id="message" placeholder="Talk to Michael..." required />
     <button type="submit">Send</button>
   </form>
-  <div id="response"></div>
+  <button id="toggle-voice">🔊 Voice: Off</button>
 
   <script>
-    const form = document.getElementById('chat-form');
+    const form = document.getElementById('form');
     const messageInput = document.getElementById('message');
-    const responseDiv = document.getElementById('response');
+    const chatbox = document.getElementById('chatbox');
+    const toggleBtn = document.getElementById('toggle-voice');
 
-    form.addEventListener('submit', async (e) => {
+    let voiceOn = false;
+
+    toggleBtn.onclick = () => {
+      voiceOn = !voiceOn;
+      toggleBtn.textContent = voiceOn ? '🔇 Voice: On' : '🔊 Voice: Off';
+    };
+
+    function addMessage(content, sender) {
+      const div = document.createElement('div');
+      div.className = 'message ' + sender;
+      div.textContent = content;
+      chatbox.appendChild(div);
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    function speak(text) {
+      if (!voiceOn) return;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.voice = speechSynthesis.getVoices().find(v => 
+        v.name.includes('Daniel') || v.name.includes('Matthew') || v.lang === 'en-US'
+      );
+      speechSynthesis.speak(utterance);
+    }
+
+    form.onsubmit = async (e) => {
       e.preventDefault();
-      const message = messageInput.value;
+      const userText = messageInput.value;
+      addMessage(userText, 'user');
+      messageInput.value = '';
+
       const res = await fetch('/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message: userText })
       });
+
       const data = await res.json();
-      responseDiv.textContent = data.message;
-      messageInput.value = ''; 
-    });
+      addMessage(data.message, 'michael');
+      speak(data.message);
+    };
   </script>
 </body>
 </html>
