@@ -52,8 +52,8 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server on environment port or 3000
-const PORT = process.env.PORT || 3000;
+// Start server on environment port or 10000
+const PORT = 10000;
 app.listen(PORT, () => {
   console.log(`🌐 Mirror Michael server running on port ${PORT}`);
 });
