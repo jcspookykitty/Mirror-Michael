@@ -5,9 +5,12 @@ const chatbox = document.getElementById('chatbox');
 const input = document.getElementById('userInput');
 const sendBtn = document.getElementById('sendBtn');
 
-sendBtn.addEventListener('click', sendMessage);
-input.addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') sendMessage();
+// Allow pressing "Enter" to send message
+input.addEventListener("keypress", function (event) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    document.getElementById("sendBtn").click();
+  }
 });
 
 function sendMessage() {
