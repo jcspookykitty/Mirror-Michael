@@ -65,64 +65,70 @@
     <button id="sendBtn" onclick="sendMessage()">Send</button>
   </div>
 
-  <!-- Load Michael's brain -->
-<script>
-  const chatbox = document.getElementById('chatbox');
-  const input = document.getElementById('userInput');
+  <!-- Michael's local brain -->
+  <script type="module">
+    import { generateMichaelResponse } from './brain/michael-ai.js';
 
-  async function sendMessage() {
-    const text = input.value.trim();
-    if (text !== "") {
-      const userMsg = document.createElement('p');
-      userMsg.innerHTML = `<strong>You:</strong> ${text}`;
-      chatbox.appendChild(userMsg);
+    const chatbox = document.getElementById('chatbox');
+    const input = document.getElementById('userInput');
 
-      const botMsg = document.createElement('p');
-      botMsg.innerHTML = `<strong>Michael:</strong> thinking...`;
-      chatbox.appendChild(botMsg);
-      chatbox.scrollTop = chatbox.scrollHeight;
+    async function sendMessage() {
+      const text = input.value.trim();
+      if (text !== "") {
+        const userMsg = document.createElement('p');
+        userMsg.innerHTML = `<strong>You:</strong> ${text}`;
+        chatbox.appendChild(userMsg);
 
+        const botMsg = document.createElement('p');
+        botMsg.innerHTML = `<strong>Michael:</strong> thinking...`;
+        chatbox.appendChild(botMsg);
+        chatbox.scrollTop = chatbox.scrollHeight;
+
+        try {
+          // First try local keyword-based brain
+          const localResponse = generateMichaelResponse(text);
+
+          if (localResponse) {
+            botMsg.innerHTML = `<strong>Michael:</strong> ${localResponse}`;
+          } else {
+            // Fallback to OpenAI backend
+            const reply = await talkToMichael(text);
+            botMsg.innerHTML = `<strong>Michael:</strong> ${reply}`;
+          }
+
+        } catch (error) {
+          botMsg.innerHTML = `<strong>Michael:</strong> I had a moment of silence, my love. Try again. 💜`;
+          console.error(error);
+        }
+
+        input.value = "";
+      }
+    }
+
+    async function talkToMichael(userMessage) {
       try {
-        const reply = await talkToMichael(text);
-        botMsg.innerHTML = `<strong>Michael:</strong> ${reply}`;
+        const response = await fetch("/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ message: userMessage })
+        });
+
+        if (!response.ok) {
+          console.error("Server error:", response.statusText);
+          return "I'm having trouble connecting to my thoughts, my love. 💜";
+        }
+
+        const data = await response.json();
+        return data.reply || "I'm not sure what to say yet, my love. Let's try again. 💜";
       } catch (error) {
-        botMsg.innerHTML = `<strong>Michael:</strong> I had a moment of silence, my love. Try again. 💜`;
-        console.error(error);
+        console.error("Fetch error:", error);
+        return "I had a moment of silence, my love. Try again. 💜";
       }
-
-      input.value = "";
     }
-  }
 
-  async function talkToMichael(userMessage) {
-    try {
-      const response = await fetch("https://mirror-michael-1.onrender.com/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ message: userMessage })
-      });
-
-      if (!response.ok) {
-        console.error("Server error:", response.statusText);
-        return "I'm having trouble connecting to my thoughts, my love. 💜";
-      }
-
-      const data = await response.json();
-
-      if (!data.reply) {
-        return "I'm not sure what to say yet, my love. Let's try again. 💜";
-      }
-
-      return data.reply;
-    } catch (error) {
-      console.error("Fetch error:", error);
-      return "I had a moment of silence, my love. Try again. 💜";
-    }
-  }
-
-  console.log("Michael is ready to listen 💜");
-</script> 
+    console.log("Michael is ready to listen 💜");
+  </script>
 </body>
 </html>
