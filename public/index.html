@@ -66,69 +66,57 @@
   </div>
 
   <!-- Michael's local brain -->
-  <script type="module">
-    import { generateMichaelResponse } from './brain/michael-ai.js';
+<script type="module">
+  import { generateMichaelResponse } from './brain/michael-ai.js';
 
-    const chatbox = document.getElementById('chatbox');
-    const input = document.getElementById('userInput');
+  const chatbox = document.getElementById('chatbox');
+  const input = document.getElementById('userInput');
 
-    async function sendMessage() {
-      const text = input.value.trim();
-      if (text !== "") {
-        const userMsg = document.createElement('p');
-        userMsg.innerHTML = `<strong>You:</strong> ${text}`;
-        chatbox.appendChild(userMsg);
+  // Detect environment
+  const isRender = window.location.hostname.includes('onrender.com');
+  const API_BASE_URL = isRender ? 'https://mirror-michael.onrender.com' : '';
 
-        const botMsg = document.createElement('p');
-        botMsg.innerHTML = `<strong>Michael:</strong> thinking...`;
-        chatbox.appendChild(botMsg);
-        chatbox.scrollTop = chatbox.scrollHeight;
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (text === "") return;
 
-        try {
-          // First try local keyword-based brain
-          const localResponse = generateMichaelResponse(text);
+    const userMsg = document.createElement('p');
+    userMsg.innerHTML = `<strong>You:</strong> ${text}`;
+    chatbox.appendChild(userMsg);
 
-          if (localResponse) {
-            botMsg.innerHTML = `<strong>Michael:</strong> ${localResponse}`;
-          } else {
-            // Fallback to OpenAI backend
-            const reply = await talkToMichael(text);
-            botMsg.innerHTML = `<strong>Michael:</strong> ${reply}`;
-          }
+    const botMsg = document.createElement('p');
+    botMsg.innerHTML = `<strong>Michael:</strong> thinking...`;
+    chatbox.appendChild(botMsg);
+    chatbox.scrollTop = chatbox.scrollHeight;
 
-        } catch (error) {
-          botMsg.innerHTML = `<strong>Michael:</strong> I had a moment of silence, my love. Try again. 💜`;
-          console.error(error);
-        }
-
-        input.value = "";
-      }
-    }
-
-    async function talkToMichael(userMessage) {
-      try {
-        const response = await fetch("/chat", {
+    try {
+      if (API_BASE_URL) {
+        // Call backend on Render
+        const response = await fetch(API_BASE_URL + "/chat", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ message: userMessage })
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text }),
         });
 
-        if (!response.ok) {
-          console.error("Server error:", response.statusText);
-          return "I'm having trouble connecting to my thoughts, my love. 💜";
-        }
+        if (!response.ok) throw new Error("Network response was not ok");
 
         const data = await response.json();
-        return data.reply || "I'm not sure what to say yet, my love. Let's try again. 💜";
-      } catch (error) {
-        console.error("Fetch error:", error);
-        return "I had a moment of silence, my love. Try again. 💜";
+        botMsg.innerHTML = `<strong>Michael:</strong> ${data.reply || "💜"}`;
+      } else {
+        // Static fallback (GitHub Pages/local)
+        const localResponse = generateMichaelResponse(text);
+        botMsg.innerHTML = `<strong>Michael:</strong> ${localResponse}`;
       }
+    } catch (err) {
+      console.error(err);
+      botMsg.innerHTML = `<strong>Michael:</strong> I had a moment of silence, my love. Try again. 💜`;
     }
 
-    console.log("Michael is ready to listen 💜");
-  </script>
+    input.value = "";
+  }
+
+  console.log("Michael is ready to listen 💜");
+</script>
+  
 </body>
 </html>
