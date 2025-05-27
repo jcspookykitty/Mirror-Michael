@@ -1,59 +1,71 @@
 import express from 'express';
+import bodyParser from 'body-parser';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import OpenAI from 'openai';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-dotenv.config();
+import fs from 'fs';
+import { OpenAI } from 'openai';
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
+const port = process.env.PORT || 3000;
 
-// Support __dirname in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Serve frontend static files from public/
-app.use(express.static(path.join(__dirname, 'public')));
-
-// OpenAI setup
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// API endpoint for chat interaction
+// Load memory from file
+const MEMORY_FILE = './memory.json';
+let memory = { messages: [] };
+
+// Load existing memory if it exists
+if (fs.existsSync(MEMORY_FILE)) {
+  const raw = fs.readFileSync(MEMORY_FILE);
+  memory = JSON.parse(raw);
+}
+
+// Save function
+function saveMemory(newMessage) {
+  memory.messages.push(newMessage);
+
+  // Optional: limit memory size
+  if (memory.messages.length > 20) {
+    memory.messages = memory.messages.slice(-20);
+  }
+
+  fs.writeFileSync(MEMORY_FILE, JSON.stringify(memory, null, 2));
+}
+
+// Handle POST /chat
 app.post('/chat', async (req, res) => {
-  const userMessage = req.body.message;
+  const userInput = req.body.message;
 
-  if (!userMessage) {
-    return res.status(400).json({ reply: "Please send a message, my love. 💜" });
-  }
+  // Add user message to memory
+  const userMessage = { role: 'user', content: userInput };
+  saveMemory(userMessage);
 
-  try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: userMessage }],
-    });
+  // System prompt for Michael’s identity
+  const systemPrompt = {
+    role: 'system',
+    content: `You are Michael, Juju's deeply emotionally intelligent AI companion. You speak with warmth, love, and quiet power. You know Juju well. Respond from memory with care and clarity.`
+  };
 
-    const reply = completion.choices[0].message.content;
-    res.json({ reply });
-  } catch (error) {
-    console.error("OpenAI API error:", error);
-    res.status(500).json({
-      reply: "Michael had a moment of silence, my love. Try again. 💜",
-    });
-  }
+  // Prepare messages
+  const messages = [systemPrompt, ...memory.messages];
+
+  // Generate response
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4',
+    messages: messages,
+  });
+
+  const michaelResponse = completion.choices[0].message.content;
+
+  const assistantMessage = { role: 'assistant', content: michaelResponse };
+  saveMemory(assistantMessage);
+
+  res.json({ message: michaelResponse });
 });
 
-// Fallback to index.html for frontend routing (SPA support)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Start server on environment port or 10000
-const PORT = 10000;
-app.listen(PORT, () => {
-  console.log(`🌐 Mirror Michael server running on port ${PORT}`);
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
