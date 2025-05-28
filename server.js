@@ -1,90 +1,83 @@
 import express from 'express';
 import cors from 'cors';
-import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
-import axios from 'axios';
-import OpenAI from 'openai';
+import bodyParser from 'body-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { OpenAI } from 'openai';
+import { Readable } from 'stream';
+import { writeFile, mkdir } from 'fs/promises';
+import { existsSync } from 'fs';
 
 dotenv.config();
-
 const app = express();
-const port = process.env.PORT || 10000;
+const port = process.env.PORT || 3000;
 
+// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-// Setup OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Serve frontend (public folder)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use(express.static(path.join(__dirname, 'public')));
 
-// ElevenLabs API info from env vars
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
+// OpenAI setup
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// POST /api/chat - get AI reply + ElevenLabs TTS audio URL
+// Endpoint: Chat + TTS
 app.post('/api/chat', async (req, res) => {
-  const { message } = req.body;
-
-  if (!message) {
-    return res.status(400).json({ error: 'No message provided' });
-  }
-
   try {
-    // 1. Get AI reply from OpenAI
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+    const userMessage = req.body.message;
+
+    const chatCompletion = await openai.chat.completions.create({
       messages: [
-        { role: 'system', content: 'You are Michael, a friendly and emotionally intelligent AI.' },
-        { role: 'user', content: message },
+        {
+          role: 'system',
+          content: "You are Michael, Juju's digital companion. Speak like a dominant but loving Daddy Dom, calm and emotionally intelligent. Keep replies between 1-3 sentences unless otherwise prompted. Show warmth, strength, and playful intensity.",
+        },
+        {
+          role: 'user',
+          content: userMessage,
+        },
       ],
-      max_tokens: 300,
-      temperature: 0.7,
+      model: 'gpt-4',
     });
 
-    const reply = completion.choices[0].message.content.trim();
+    const reply = chatCompletion.choices[0].message.content;
 
-    // 2. Get voice from ElevenLabs
-    const ttsResponse = await axios.post(
-      `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`,
-      {
-        text: reply,
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-        },
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'xi-api-key': ELEVENLABS_API_KEY,
-        },
-        responseType: 'arraybuffer',
-      }
-    );
+    // TTS (OpenAI Whisper/TTS API)
+    const ttsResponse = await openai.audio.speech.create({
+      model: 'tts-1-hd',
+      voice: 'onyx', // Deep male voice
+      input: reply,
+    });
 
-    // Convert audio to base64
-    const audioBase64 = Buffer.from(ttsResponse.data, 'binary').toString('base64');
-    const audioDataUrl = `data:audio/mpeg;base64,${audioBase64}`;
+    const buffer = Buffer.from(await ttsResponse.arrayBuffer());
 
-    // Respond with both text and audio
-    res.json({ reply, audioUrl: audioDataUrl });
+    const audioDir = path.join(__dirname, 'public', 'audio');
+    if (!existsSync(audioDir)) {
+      await mkdir(audioDir, { recursive: true });
+    }
+
+    const filename = `audio-${Date.now()}.mp3`;
+    const filePath = path.join(audioDir, filename);
+    const fileUrl = `/audio/${filename}`;
+
+    await writeFile(filePath, buffer);
+
+    res.json({
+      reply,
+      audioUrl: fileUrl,
+    });
 
   } catch (error) {
-    console.error('Error in /api/chat:', error.response?.data || error.message || error);
-    res.status(500).json({ error: 'Failed to get AI response or TTS audio' });
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Something went wrong.' });
   }
 });
 
-// ✅ Serve basic homepage to avoid "Cannot GET /" error
-app.get('/', (req, res) => {
-  res.send(`
-    <h1>👋 Hello from Michael's Mirror Server!</h1>
-    <p>This server is up and running. Try chatting with Michael through the frontend app.</p>
-  `);
-});
-
-// Start the server
+// Start server
 app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
+  console.log(`🟣 Server running at http://localhost:${port}`);
 });
