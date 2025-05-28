@@ -16,32 +16,31 @@ sendBtn.addEventListener('click', async () => {
 
   addMessage('user', message);
   input.value = '';
-  addMessage('michael', 'Typing...', true);
+  addMessage('michael', 'Michael is typing...', true);
 
   try {
-    const res = await fetch('/api/chat', {
+    const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message }),
     });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      updateLastMessage(`❌ Error: ${errorText}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      updateLastMessage(`❌ Error: ${errorData.error || 'Unknown error'}`);
       return;
     }
 
-    const data = await res.json();
+    const data = await response.json();
     updateLastMessage(data.reply);
 
     if (speechEnabled && data.audioUrl) {
       const audio = new Audio(data.audioUrl);
       audio.play();
     }
-
   } catch (err) {
-    console.error('💥 Frontend error:', err);
-    updateLastMessage(`❌ Failed to talk to Michael: ${err.message}`);
+    console.error('Frontend error:', err);
+    updateLastMessage(`❌ Failed to get reply: ${err.message}`);
   }
 });
 
