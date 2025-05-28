@@ -1,73 +1,85 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const input = document.getElementById('input');
-  const chatbox = document.getElementById('chatbox');
-  const sendBtn = document.getElementById('sendBtn');
+const chatbox = document.getElementById('chatbox');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+const toggleSpeechBtn = document.getElementById('toggleSpeech');
 
-  sendBtn.addEventListener('click', sendMessage);
-  input.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') sendMessage();
-  });
+let speechEnabled = true;
 
-  async function sendMessage() {
-    const userText = input.value.trim();
-    if (!userText) return;
+toggleSpeechBtn.addEventListener('click', () => {
+  speechEnabled = !speechEnabled;
+  toggleSpeechBtn.textContent = speechEnabled ? 'Disable Speech' : 'Enable Speech';
+});
 
-    // User message bubble
-    const userDiv = document.createElement('div');
-    userDiv.className = 'message user';
-    userDiv.textContent = userText;
-    chatbox.appendChild(userDiv);
-    chatbox.scrollTop = chatbox.scrollHeight;
+sendBtn.addEventListener('click', () => {
+  const text = input.value.trim();
+  if (text) {
+    addMessage(text, 'user');
     input.value = '';
-
-    try {
-      const res = await fetch('/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userText })
-      });
-
-      const data = await res.json();
-      const reply = data.message;
-
-      // Michael's message container
-      const michaelDiv = document.createElement('div');
-      michaelDiv.className = 'message michael';
-
-      const messageText = document.createElement('span');
-      messageText.textContent = reply;
-
-      const playButton = document.createElement('button');
-      playButton.textContent = '🔊 Play';
-      playButton.className = 'play-button';
-      playButton.onclick = async () => {
-        try {
-          const voiceRes = await fetch('/speak', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: reply })
-          });
-          const audioBlob = await voiceRes.blob();
-          const audioURL = URL.createObjectURL(audioBlob);
-          const audio = new Audio(audioURL);
-          await audio.play();
-        } catch (err) {
-          console.error('Playback failed:', err);
-          alert('Playback failed. Try again.');
-        }
-      };
-
-      michaelDiv.appendChild(messageText);
-      michaelDiv.appendChild(playButton);
-      chatbox.appendChild(michaelDiv);
-      chatbox.scrollTop = chatbox.scrollHeight;
-
-    } catch (err) {
-      console.error('Error:', err);
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'message michael';
-      errorDiv.textContent = "Something went wrong 😔";
-      chatbox.appendChild(errorDiv);
-    }
+    sendToMichael(text);
   }
 });
+
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendBtn.click();
+  }
+});
+
+function addMessage(text, sender = 'michael') {
+  const messageEl = document.createElement('div');
+  messageEl.classList.add('message', sender);
+
+  if (sender === 'michael') {
+    // Michael's message with play button
+    const messageText = document.createElement('span');
+    messageText.textContent = text;
+
+    const playBtn = document.createElement('button');
+    playBtn.textContent = '🔊';
+    playBtn.className = 'play-button';
+    playBtn.title = 'Play message';
+    playBtn.addEventListener('click', () => {
+      if (speechEnabled && 'speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        window.speechSynthesis.speak(utterance);
+      }
+    });
+
+    messageEl.appendChild(playBtn);
+    messageEl.appendChild(messageText);
+  } else {
+    // User message
+    messageEl.textContent = text;
+  }
+
+  chatbox.appendChild(messageEl);
+  chatbox.scrollTop = chatbox.scrollHeight;
+}
+
+function sendToMichael(text) {
+  // Show typing indicator
+  const typingEl = document.createElement('div');
+  typingEl.classList.add('message', 'michael', 'typing');
+  typingEl.textContent = 'Michael is typing...';
+  chatbox.appendChild(typingEl);
+  chatbox.scrollTop = chatbox.scrollHeight;
+
+  // Simulate API call delay for demo - replace with actual API call
+  setTimeout(() => {
+    chatbox.removeChild(typingEl);
+
+    // Here you should call your backend API to get Michael's reply
+    // For demo, just echo the input reversed:
+    const reply = "You said: " + text; 
+
+    addMessage(reply, 'michael');
+
+    // Auto play speech if enabled
+    if (speechEnabled && 'speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(reply);
+      window.speechSynthesis.speak(utterance);
+    }
+
+  }, 1200);
+}
