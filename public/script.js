@@ -1,4 +1,3 @@
-// Ensure the DOM is fully loaded before executing scripts
 document.addEventListener('DOMContentLoaded', () => {
   const sendBtn = document.getElementById('sendBtn');
   const input = document.getElementById('input');
@@ -9,32 +8,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load chat history from localStorage
   const chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
-  chatHistory.forEach(({ sender, text }) => addMessage(sender, text));
+  chatHistory.forEach(({ sender, text }) => {
+    addMessage(sender, text);
+  });
 
-  // Toggle speech functionality
   toggleSpeech.addEventListener('click', () => {
     speechEnabled = !speechEnabled;
     toggleSpeech.textContent = speechEnabled ? 'Disable Speech' : 'Enable Speech';
   });
 
-  // Handle send button click
   sendBtn.addEventListener('click', async () => {
     const message = input.value.trim();
     if (!message) return;
 
     addMessage('user', message);
     saveMessage('user', message);
-    input.value = '';
-    input.focus();
-    sendBtn.disabled = true;
 
+    input.value = '';
     addMessage('michael', 'Michael is typing...', true);
 
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message })
       });
 
       if (!response.ok) {
@@ -44,27 +43,24 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const data = await response.json();
-      updateLastMessage(data.reply || '⚠️ Michael had no reply.');
-      saveMessage('michael', data.reply || '⚠️ Michael had no reply.');
+      const reply = data.reply || '⚠️ Michael had no reply.';
+      updateLastMessage(reply);
+      saveMessage('michael', reply);
 
       if (speechEnabled && data.audioUrl) {
         try {
           const audio = new Audio(data.audioUrl);
           audio.play();
         } catch (e) {
-          console.warn("Audio playback failed:", e);
+          console.warn('🎧 Audio playback error:', e);
         }
       }
-
     } catch (err) {
       console.error('Frontend error:', err);
       updateLastMessage(`❌ Failed to get reply: ${err.message}`);
-    } finally {
-      sendBtn.disabled = false;
     }
   });
 
-  // Add message to chatbox
   function addMessage(sender, text, isTyping = false) {
     const msgDiv = document.createElement('div');
     msgDiv.classList.add('message', sender);
@@ -74,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
     chatbox.scrollTop = chatbox.scrollHeight;
   }
 
-  // Update the last typing message
   function updateLastMessage(newText) {
     const lastMsg = chatbox.querySelector('.message.typing');
     if (lastMsg) {
@@ -83,10 +78,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Save message to localStorage
   function saveMessage(sender, text) {
-    const chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
-    chatHistory.push({ sender, text });
-    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+    const history = JSON.parse(localStorage.getItem('chatHistory')) || [];
+    history.push({ sender, text });
+    localStorage.setItem('chatHistory', JSON.stringify(history));
   }
 });
