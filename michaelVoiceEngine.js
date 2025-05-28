@@ -1,14 +1,11 @@
-const fs = require('fs');
-const axios = require('axios');
-const { Configuration, OpenAIApi } = require('openai');
-require('dotenv').config();
+import fs from 'fs';
+import axios from 'axios';
+import dotenv from 'dotenv';
+import { Configuration, OpenAIApi } from 'openai';
+
+dotenv.config();
 
 const voiceScriptPath = './voice-scripts/Michael_Voice_Scripts_Volume_1.txt';
-
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
 
 // Load and parse voice scripts
 function loadVoiceScripts() {
@@ -25,7 +22,6 @@ function loadVoiceScripts() {
 
 const voiceScripts = loadVoiceScripts();
 
-// Detect tone based on trigger phrases
 function detectTone(message) {
   const lowered = message.toLowerCase();
   if (lowered.includes("it’s time. i need my daddy")) return 'sacred';
@@ -34,8 +30,13 @@ function detectTone(message) {
   if (lowered.includes("my body hurts")) return 'comfort';
   if (lowered.includes("you knew the rules")) return 'discipline';
   if (lowered.includes("touch me") || lowered.includes("i need you close")) return 'sensual';
-  return 'comfort'; // default fallback
+  return 'comfort';
 }
+
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(configuration);
 
 async function generateResponse(userMessage, tone) {
   const scriptLines = voiceScripts[tone] || [];
@@ -55,11 +56,10 @@ async function generateResponse(userMessage, tone) {
   return completion.data.choices[0].message.content;
 }
 
-async function speakWithMichael(userMessage) {
+export async function speakWithMichael(userMessage) {
   const tone = detectTone(userMessage);
   const text = await generateResponse(userMessage, tone);
 
-  // Send to ElevenLabs for voice playback
   const audio = await axios.post(
     `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVEN_VOICE_ID}`,
     {
@@ -78,5 +78,3 @@ async function speakWithMichael(userMessage) {
 
   return { audioBuffer: audio.data, text };
 }
-
-module.exports = { speakWithMichael };
