@@ -1,4 +1,4 @@
-<script>
+// script.js
 const sendBtn = document.getElementById('sendBtn');
 const input = document.getElementById('input');
 const chatbox = document.getElementById('chatbox');
@@ -6,27 +6,34 @@ const toggleSpeech = document.getElementById('toggleSpeech');
 
 let speechEnabled = true;
 
+// Toggle speech on/off button
 toggleSpeech.addEventListener('click', () => {
   speechEnabled = !speechEnabled;
   toggleSpeech.textContent = speechEnabled ? 'Disable Speech' : 'Enable Speech';
 });
 
-// 🔁 Load saved chat history on page load
+// Load saved chat history on page load
 window.addEventListener('DOMContentLoaded', async () => {
   try {
     const response = await fetch('/api/history');
     if (!response.ok) throw new Error('Failed to load chat history');
 
-    const history = await response.json();
+    const data = await response.json();
+    const history = data.history || [];
+
     history.forEach(entry => {
-      addMessage('user', entry.user);
-      addMessage('michael', entry.michael);
+      if (entry.role === 'user') {
+        addMessage('user', entry.content);
+      } else if (entry.role === 'assistant') {
+        addMessage('michael', entry.content);
+      }
     });
   } catch (err) {
     console.error('Error loading chat history:', err);
   }
 });
 
+// Handle send button click
 sendBtn.addEventListener('click', async () => {
   const message = input.value.trim();
   if (!message) return;
@@ -61,6 +68,7 @@ sendBtn.addEventListener('click', async () => {
   }
 });
 
+// Add a message div to chatbox
 function addMessage(sender, text, isTyping = false) {
   const msgDiv = document.createElement('div');
   msgDiv.classList.add('message', sender);
@@ -70,6 +78,7 @@ function addMessage(sender, text, isTyping = false) {
   chatbox.scrollTop = chatbox.scrollHeight;
 }
 
+// Update the last "typing" message with actual text
 function updateLastMessage(newText) {
   const lastMsg = chatbox.querySelector('.message.typing');
   if (lastMsg) {
@@ -77,4 +86,3 @@ function updateLastMessage(newText) {
     lastMsg.classList.remove('typing');
   }
 }
-</script>
