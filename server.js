@@ -19,72 +19,38 @@ app.use(bodyParser.json());
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Static file serving
+// Serve frontend static files
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/audio', express.static(path.join(__dirname, 'public/audio')));
 
-// OpenAI client
+// Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Conversation history (in-memory + saved to file)
+// In-memory chat memory per user session (limit to last 50 messages)
 let conversationHistory = [
   { role: 'system', content: 'You are Michael, a friendly and caring AI companion.' }
 ];
 
-const historyFile = path.join(__dirname, 'chat-history.json');
+const MAX_HISTORY = 50;
 
-// Load saved history on server start (optional)
-if (fs.existsSync(historyFile)) {
-  try {
-    const fileData = fs.readFileSync(historyFile, 'utf-8');
-    const saved = JSON.parse(fileData);
-    saved.forEach(pair => {
-      if (pair.user) conversationHistory.push({ role: 'user', content: pair.user });
-      if (pair.michael) conversationHistory.push({ role: 'assistant', content: pair.michael });
-    });
-  } catch (e) {
-    console.error('⚠️ Failed to load saved history:', e);
+// Helper: Trim conversationHistory to max length
+function trimHistory() {
+  if (conversationHistory.length > MAX_HISTORY) {
+    // Keep system message + last MAX_HISTORY-1 messages
+    conversationHistory = [conversationHistory[0], ...conversationHistory.slice(conversationHistory.length - (MAX_HISTORY - 1))];
   }
 }
 
-// Save conversation to history file
-function saveHistory(userMessage, michaelReply) {
-  let historyData = [];
-
-  if (fs.existsSync(historyFile)) {
-    try {
-      const existing = fs.readFileSync(historyFile, 'utf-8');
-      historyData = JSON.parse(existing);
-    } catch (err) {
-      console.error('⚠️ Error reading existing history file:', err);
-    }
-  }
-
-  historyData.push({ user: userMessage, michael: michaelReply });
-
-  try {
-    fs.writeFileSync(historyFile, JSON.stringify(historyData.slice(-50), null, 2));
-  } catch (err) {
-    console.error('⚠️ Failed to save history:', err);
-  }
-}
-
-// 🔁 API to get last 50 messages
+// GET /api/history - returns conversation history (excluding system message)
 app.get('/api/history', (req, res) => {
-  try {
-    if (!fs.existsSync(historyFile)) return res.json([]);
-    const data = fs.readFileSync(historyFile, 'utf-8');
-    const history = JSON.parse(data);
-    res.json(history.slice(-50));
-  } catch (err) {
-    console.error('❌ Failed to read chat history:', err);
-    res.status(500).json({ error: 'Failed to load history' });
-  }
+  // Send history without the system prompt
+  const historyWithoutSystem = conversationHistory.filter(msg => msg.role !== 'system');
+  res.json({ history: historyWithoutSystem });
 });
 
-// 🧠 POST /api/chat — Get AI reply + TTS audio
+// POST /api/chat — get AI reply + TTS audio
 app.post('/api/chat', async (req, res) => {
   const { message } = req.body;
   if (!message || typeof message !== 'string') {
@@ -92,25 +58,30 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
+    // Append user's message to conversation
     conversationHistory.push({ role: 'user', content: message });
+    trimHistory();
 
+    // Get AI completion (chat reply)
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: conversationHistory,
     });
 
     const reply = completion.choices[0].message.content;
+
+    // Append AI reply to conversation history
     conversationHistory.push({ role: 'assistant', content: reply });
+    trimHistory();
 
-    // Save history to file
-    saveHistory(message, reply);
-
+    // Generate TTS audio with Onyx voice
     const speechResponse = await openai.audio.speech.create({
       model: 'tts-1',
       voice: 'onyx',
       input: reply,
     });
 
+    // Save audio to file
     const filename = `michael-${Date.now()}.mp3`;
     const filepath = path.join(__dirname, 'public/audio', filename);
     const writeStream = fs.createWriteStream(filepath);
@@ -121,23 +92,24 @@ app.post('/api/chat', async (req, res) => {
       speechResponse.body.on('error', reject);
     });
 
+    // Send reply text + audio URL
     res.json({
       reply,
       audioUrl: `/audio/${filename}`,
     });
 
   } catch (error) {
-    console.error('❌ Error in /api/chat:', error);
+    console.error('Error in /api/chat:', error);
     res.status(500).json({ error: 'Failed to process chat or generate speech' });
   }
 });
 
-// ✨ Serve SPA frontend
+// Fallback route to serve index.html for SPA frontend
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-// 🚀 Start server
+// Start server
 app.listen(port, () => {
   console.log(`💬 Michael's Mirror server listening on port ${port}`);
 });
