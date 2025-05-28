@@ -1,74 +1,18 @@
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import bodyParser from 'body-parser';
-import cors from 'cors';
-import axios from 'axios';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Serve index.html on root request
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Chat endpoint (replace with OpenAI or your AI logic)
-app.post('/chat', async (req, res) => {
-  const userMessage = req.body.message;
-  console.log('User:', userMessage);
-
-  // Example AI response placeholder
-  const michaelResponse = `I'm here with you, Juju 💜 You said: "${userMessage}"`;
-
-  // TODO: Replace with OpenAI chat call or your own AI logic
-  res.json({ message: michaelResponse });
-});
-
-// ElevenLabs TTS endpoint
-app.post('/speak', async (req, res) => {
-  try {
-    const { text } = req.body;
-
-    // ElevenLabs API details (replace with your key and voice ID)
-    const apiKey = process.env.ELEVENLABS_API_KEY;
-    const voiceId = agent_01jwa49y8kez985x36mq9yk01g '';
-
-    const response = await axios.post(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-      { text, voice_settings: { stability: 0.75, similarity_boost: 0.75 } },
-      {
-        headers: {
-          'xi-api-key': apiKey,
-          'Content-Type': 'application/json',
-          Accept: 'audio/mpeg',
-        },
-        responseType: 'arraybuffer',
-      }
-    );
-
-    res.set({
-      'Content-Type': 'audio/mpeg',
-      'Content-Length': response.data.length,
-    });
-
-    res.send(response.data);
-  } catch (error) {
-    console.error('TTS error:', error.message);
-    res.status(500).json({ error: 'Text-to-Speech failed' });
+{
+  "type": "module",
+  "name": "michael-ai-server",
+  "version": "1.0.0",
+  "description": "Michael AI backend with chat and ElevenLabs TTS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "openai": "^4.0.0"
   }
-});
-
-app.listen(PORT, () => {
-  console.log(`Mirror-Michael server listening on port ${PORT}`);
-});
+}
