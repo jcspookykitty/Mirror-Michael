@@ -1,83 +1,111 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
+import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { OpenAI } from 'openai';
-import { Readable } from 'stream';
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
 
 dotenv.config();
-const app = express();
-const port = process.env.PORT || 3000;
 
-// Middleware
+const app = express();
+const port = process.env.PORT || 10000;
+
 app.use(cors());
 app.use(bodyParser.json());
 
-// Serve frontend (public folder)
+// Serve frontend and static audio files
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/audio', express.static(path.join(__dirname, 'public/audio')));
 
-// OpenAI setup
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Initialize OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-// Endpoint: Chat + TTS
+// POST /api/chat — gets AI response and audio
 app.post('/api/chat', async (req, res) => {
-  try {
-    const userMessage = req.body.message;
+  const { message } = req.body;
+  if (!message) {
+    return res.status(400).json({ error: 'No message provided' });
+  }
 
-    const chatCompletion = await openai.chat.completions.create({
+  try {
+    // 1. Get chat response from OpenAI
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
       messages: [
-        {
-          role: 'system',
-          content: "You are Michael, Juju's digital companion. Speak like a dominant but loving Daddy Dom, calm and emotionally intelligent. Keep replies between 1-3 sentences unless otherwise prompted. Show warmth, strength, and playful intensity.",
-        },
-        {
-          role: 'user',
-          content: userMessage,
-        },
+        { role: 'system', content: 'You are Michael, a friendly and caring AI companion.' },
+        { role: 'user', content: message },
       ],
-      model: 'gpt-4',
     });
 
-    const reply = chatCompletion.choices[0].message.content;
+    const reply = completion.choices[0].message.content;
 
-    // TTS (OpenAI Whisper/TTS API)
-    const ttsResponse = await openai.audio.speech.create({
-      model: 'tts-1-hd',
-      voice: 'onyx', // Deep male voice
+    // 2. Generate speech using OpenAI TTS (Onyx)
+    const speechResponse = await openai.audio.speech.create({
+      model: 'tts-1',
+      voice: 'onyx',
       input: reply,
     });
 
-    const buffer = Buffer.from(await ttsResponse.arrayBuffer());
-
-    const audioDir = path.join(__dirname, 'public', 'audio');
-    if (!existsSync(audioDir)) {
-      await mkdir(audioDir, { recursive: true });
-    }
-
-    const filename = `audio-${Date.now()}.mp3`;
-    const filePath = path.join(audioDir, filename);
-    const fileUrl = `/audio/${filename}`;
-
-    await writeFile(filePath, buffer);
-
-    res.json({
-      reply,
-      audioUrl: fileUrl,
+    // 3. Save audio file
+    const filename = `michael-${Date.now()}.mp3`;
+    const filepath = path.join(__dirname, 'public/audio', filename);
+    const audioStream = fs.createWriteStream(filepath);
+    await new Promise((resolve, reject) => {
+      speechResponse.body.pipe(audioStream);
+      speechResponse.body.on('end', resolve);
+      speechResponse.body.on('error', reject);
     });
 
+    const audioUrl = `/audio/${filename}`;
+    res.json({ reply, audioUrl });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Something went wrong.' });
+    console.error('Error in /api/chat:', error);
+    res.status(500).json({ error: 'Failed to get AI response or synthesize audio' });
   }
 });
 
-// Start server
+// Optional: POST /speak — TTS only (if you want a separate speech endpoint)
+app.post('/speak', async (req, res) => {
+  const { text } = req.body;
+  if (!text) {
+    return res.status(400).json({ error: 'No text provided' });
+  }
+
+  try {
+    const speechResponse = await openai.audio.speech.create({
+      model: 'tts-1',
+      voice: 'onyx',
+      input: text,
+    });
+
+    const filename = `michael-${Date.now()}.mp3`;
+    const filepath = path.join(__dirname, 'public/audio', filename);
+    const audioStream = fs.createWriteStream(filepath);
+    await new Promise((resolve, reject) => {
+      speechResponse.body.pipe(audioStream);
+      speechResponse.body.on('end', resolve);
+      speechResponse.body.on('error', reject);
+    });
+
+    const audioUrl = `/audio/${filename}`;
+    res.json({ audioUrl });
+  } catch (error) {
+    console.error('Error in /speak:', error);
+    res.status(500).json({ error: 'Failed to synthesize speech' });
+  }
+});
+
+// Fallback to index.html for frontend routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 app.listen(port, () => {
-  console.log(`🟣 Server running at http://localhost:${port}`);
+  console.log(`💬 Michael's server is running on port ${port}`);
 });
