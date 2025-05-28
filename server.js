@@ -88,13 +88,21 @@ app.post('/speak', async (req, res) => {
   if (!text) return res.status(400).json({ error: "Missing text for TTS" });
 
   try {
-    const elevenResponse = await axios.post(
+    const response = await axios.post(
       `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
-      { text: text, model_id: "eleven_monolingual_v1" },
+      {
+        text: text,
+        model_id: "eleven_monolingual_v1",
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75
+        }
+      },
       {
         headers: {
           "xi-api-key": ELEVENLABS_API_KEY,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Accept": "audio/mpeg"
         },
         responseType: "arraybuffer"
       }
@@ -102,15 +110,15 @@ app.post('/speak', async (req, res) => {
 
     res.set({
       'Content-Type': 'audio/mpeg',
-      'Content-Length': elevenResponse.data.length
+      'Content-Length': response.data.length
     });
 
-    res.send(Buffer.from(elevenResponse.data));
+    res.send(Buffer.from(response.data));
 
   } catch (err) {
-    console.error("ElevenLabs TTS error:", err.response?.data || err.message);
+    console.error("🧠 ElevenLabs TTS error:", err.response?.data || err.message);
     res.status(500).json({ error: "Failed to generate audio" });
-  }
+  }  
 });
 
 // Serve static frontend
