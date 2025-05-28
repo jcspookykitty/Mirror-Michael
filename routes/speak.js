@@ -1,5 +1,6 @@
-const express = require('express');
-const { speakWithMichael } = require('../michaelVoiceEngine');
+import express from 'express';
+import { speakWithMichael } from '../michaelVoiceEngine.js';
+
 const router = express.Router();
 
 router.post('/', async (req, res) => {
@@ -19,4 +20,4 @@ router.post('/', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
