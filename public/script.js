@@ -53,3 +53,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+<script src="script.js"></script>
+<\body>:
