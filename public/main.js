@@ -9,26 +9,34 @@ async function sendMessage() {
   }
 
   // Show loading text
-  responseEl.innerText = "Michael is thinking... ✨";
+  responseEl.textContent = "Michael is thinking... ✨";
 
   try {
     const res = await fetch("/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: input })
+      body: JSON.stringify({ message: input }),
     });
 
-    const data = await res.json();
-
-    if (data.error) {
-      responseEl.innerText = "Something went wrong: " + data.error;
+    if (!res.ok) {
+      // Try to parse error message from response
+      let errorMsg = `HTTP error: ${res.status}`;
+      try {
+        const errData = await res.json();
+        if (errData.error) errorMsg = errData.error;
+      } catch {
+        // Ignore parsing error
+      }
+      responseEl.textContent = `Something went wrong: ${errorMsg}`;
       return;
     }
 
-    // Display Michael's reply
-    responseEl.innerText = data.message;
+    const data = await res.json();
 
-    // Play Michael's voice
+    // Display Michael's reply
+    responseEl.textContent = data.message || "No reply received.";
+
+    // Play Michael's voice if audio data is present
     if (data.audio) {
       const audio = new Audio("data:audio/mp3;base64," + data.audio);
       audio.play();
@@ -36,7 +44,7 @@ async function sendMessage() {
 
   } catch (error) {
     console.error("Fetch error:", error);
-    responseEl.innerText = "Failed to reach Michael. Please try again.";
+    responseEl.textContent = "Failed to reach Michael. Please try again.";
   }
 
   // Clear input after sending
