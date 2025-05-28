@@ -1,16 +1,44 @@
 async function sendMessage() {
-  const input = document.getElementById("message").value;
+  const inputEl = document.getElementById("message");
+  const responseEl = document.getElementById("response");
+  const input = inputEl.value.trim();
 
-  const res = await fetch("/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: input })
-  });
+  if (!input) {
+    alert("Please type a message for Michael.");
+    return;
+  }
 
-  const data = await res.json();
-  document.getElementById("response").innerText = data.message;
+  // Show loading text
+  responseEl.innerText = "Michael is thinking... ✨";
 
-  // Audio playback
-  const audio = new Audio("data:audio/mp3;base64," + data.audio);
-  audio.play();
+  try {
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: input })
+    });
+
+    const data = await res.json();
+
+    if (data.error) {
+      responseEl.innerText = "Something went wrong: " + data.error;
+      return;
+    }
+
+    // Display Michael's reply
+    responseEl.innerText = data.message;
+
+    // Play Michael's voice
+    if (data.audio) {
+      const audio = new Audio("data:audio/mp3;base64," + data.audio);
+      audio.play();
+    }
+
+  } catch (error) {
+    console.error("Fetch error:", error);
+    responseEl.innerText = "Failed to reach Michael. Please try again.";
+  }
+
+  // Clear input after sending
+  inputEl.value = "";
 }
