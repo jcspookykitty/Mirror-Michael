@@ -3,43 +3,26 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import axios from 'axios';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { Configuration, OpenAIApi } from 'openai';
+import OpenAI from 'openai';
 
 dotenv.config();
 
 const app = express();
-const port = 10000; // <-- Your specified port
+const port = 10000; // explicitly set to 10000
 
-// Setup __dirname since we're using ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-// Serve static files from 'public' directory
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Route to serve main HTML
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// Setup OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-// OpenAI setup
-const openai = new OpenAIApi(
-  new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-  })
-);
-
-// ElevenLabs API keys from .env
+// ElevenLabs
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
+const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID; // Your chosen voice
 
-// Handle chat + TTS
+// API route
 app.post('/api/chat', async (req, res) => {
   const { message } = req.body;
 
@@ -48,18 +31,20 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-4o',
+    // 🧠 Get response from OpenAI
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o', // You can change to gpt-4 or gpt-3.5-turbo
       messages: [
-        { role: 'system', content: 'You are Michael, a friendly and emotionally intelligent AI.' },
+        { role: 'system', content: 'You are Michael, a warm, emotionally intelligent AI partner.' },
         { role: 'user', content: message },
       ],
       max_tokens: 300,
       temperature: 0.7,
     });
 
-    const reply = completion.data.choices[0].message.content.trim();
+    const reply = completion.choices[0].message.content.trim();
 
+    // 🎙️ Generate voice with ElevenLabs
     const ttsResponse = await axios.post(
       `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`,
       {
@@ -88,6 +73,7 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+// Start server
 app.listen(port, () => {
-  console.log(`🟢 Server is running on http://localhost:${port}`);
+  console.log(`💜 Michael's server is listening on http://localhost:${port}`);
 });
