@@ -12,51 +12,43 @@ document.addEventListener('DOMContentLoaded', () => {
     const userText = input.value.trim();
     if (!userText) return;
 
-    // Display user message
     appendMessage('user', userText);
-
-    // Reset input and disable send button
     input.value = '';
     input.disabled = true;
     sendBtn.disabled = true;
 
-    // Typing indicator
     const typingDiv = appendMessage('michael', 'Michael is typing...', true);
 
     try {
-      const res = await fetch('/chat', {
+      const chatRes = await fetch('/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userText })
       });
 
-      if (!res.ok) throw new Error(await res.text());
+      if (!chatRes.ok) throw new Error(await chatRes.text());
+      const chatData = await chatRes.json();
+      const reply = chatData.message;
 
-      const data = await res.json();
-      const reply = data.message;
-      const audioBase64 = data.audio;
-
-      // Remove typing indicator
       typingDiv.remove();
-
-      // Show Michael's reply
       appendMessage('michael', reply);
 
-      // Play audio if available
-      if (audioBase64) {
-        const audio = new Audio(`data:audio/mpeg;base64,${audioBase64}`);
-        audio.play();
-      }
+      const voiceRes = await fetch('/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: reply })
+      });
+
+      const audioData = await voiceRes.blob();
+      const audioURL = URL.createObjectURL(audioData);
+      const audio = new Audio(audioURL);
+      audio.play();
 
     } catch (err) {
-      console.error('Error during fetch or playback:', err);
-
-      // Remove typing indicator and show error
+      console.error('Error:', err);
       typingDiv.remove();
       appendMessage('michael', "Something went wrong, sorry my love 😔");
-
     } finally {
-      // Re-enable input
       input.disabled = false;
       sendBtn.disabled = false;
       input.focus();
