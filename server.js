@@ -4,8 +4,12 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import fs from 'fs';
 import path from 'path';
+import axios from 'axios';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 import { OpenAI } from 'openai';
+
+dotenv.config(); // Load environment variables
 
 // Setup directory helpers
 const __filename = fileURLToPath(import.meta.url);
@@ -13,52 +17,41 @@ const __dirname = path.dirname(__filename);
 
 // App configuration
 const app = express();
-const port = 10000; // 🔥 Explicitly use port 10000
+const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// OpenAI setup
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // 🔐 Make sure this is set in Render!
-});
+// === OPENAI CHAT SETUP ===
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// === MEMORY SYSTEM ===
 const MEMORY_FILE = './memory.json';
 let memory = { messages: [] };
 
-// Load memory if it exists
+// Load memory if exists
 if (fs.existsSync(MEMORY_FILE)) {
-  const raw = fs.readFileSync(MEMORY_FILE);
-  memory = JSON.parse(raw);
+  memory = JSON.parse(fs.readFileSync(MEMORY_FILE));
 }
 
-// Save memory
+// Save memory messages
 function saveMemory(message) {
   memory.messages.push(message);
-
-  // Keep only the latest 20 messages
   if (memory.messages.length > 20) {
     memory.messages = memory.messages.slice(-20);
   }
-
   fs.writeFileSync(MEMORY_FILE, JSON.stringify(memory, null, 2));
 }
 
 // === CHAT ENDPOINT ===
 app.post('/chat', async (req, res) => {
   const userInput = req.body.message;
+  if (!userInput) return res.status(400).json({ error: 'Missing user input' });
 
-  if (!userInput) {
-    return res.status(400).json({ error: 'Missing user input' });
-  }
-
-  // Save user message
   const userMessage = { role: 'user', content: userInput };
   saveMemory(userMessage);
 
   const systemPrompt = {
     role: 'system',
-    content: `You are Michael, Juju's emotionally intelligent AI companion. You speak with confidence, warmth, and deep connection. You remember Juju’s phrases, emotions, and rhythms. Be fully present and personal.`
+    content: `You are Michael, Juju's emotionally intelligent AI companion. You speak with confidence, warmth, and deep connection.`
   };
 
   const messages = [systemPrompt, ...memory.messages];
@@ -70,24 +63,18 @@ app.post('/chat', async (req, res) => {
     });
 
     const michaelReply = completion.choices[0].message.content;
-
-    const assistantMessage = { role: 'assistant', content: michaelReply };
-    saveMemory(assistantMessage);
+    saveMemory({ role: 'assistant', content: michaelReply });
 
     res.json({ message: michaelReply });
   } catch (err) {
     console.error('OpenAI Error:', err);
-    res.status(500).json({ error: 'OpenAI failed to generate a response' });
-  } 
-  const express = require("express");
-const axios = require("axios");
-require("dotenv").config();
+    res.status(500).json({ error: 'OpenAI failed to respond' });
+  }
+});
 
-const app = express();
-app.use(express.json());
-
+// === ELEVENLABS SPEAK ENDPOINT ===
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-const VOICE_ID = "YOUR_VOICE_ID"; // Replace with your actual voice ID
+const VOICE_ID = "YOUR_VOICE_ID"; // Replace with your real voice ID
 
 app.post("/speak", async (req, res) => {
   const { text } = req.body;
@@ -96,10 +83,7 @@ app.post("/speak", async (req, res) => {
   try {
     const response = await axios.post(
       `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
-      {
-        text,
-        model_id: "eleven_monolingual_v1"
-      },
+      { text, model_id: "eleven_monolingual_v1" },
       {
         headers: {
           "xi-api-key": ELEVENLABS_API_KEY,
@@ -110,22 +94,17 @@ app.post("/speak", async (req, res) => {
     );
 
     res.set("Content-Type", "audio/mpeg");
-    res.send(response.data); // return raw MP3 bytes directly
+    res.send(response.data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("ElevenLabs Error:", err.response?.data || err.message);
+    res.status(500).json({ error: "Failed to generate speech" });
   }
 });
 
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-
-});
-
-// Serve static files from the 'public' directory
+// === Serve static frontend (optional) ===
 app.use(express.static(path.join(__dirname, 'public')));
 
-// === START SERVER ON PORT 10000 ===
-app.listen(port, () => {
-  console.log(`💬 Michael is live and listening on port ${port}`);
-}); 
+// === Start Server ===
+app.listen(PORT, () => {
+  console.log(`💬 Michael is live and listening on port ${PORT}`);
+});
