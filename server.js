@@ -88,7 +88,7 @@ app.post('/speak', async (req, res) => {
   if (!text) return res.status(400).json({ error: "Missing text for TTS" });
 
   try {
-    const response = await axios.post(
+    const elevenResponse = await axios.post(
       `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
       {
         text: text,
@@ -110,15 +110,15 @@ app.post('/speak', async (req, res) => {
 
     res.set({
       'Content-Type': 'audio/mpeg',
-      'Content-Length': response.data.length
+      'Content-Length': elevenResponse.data.length
     });
 
-    res.send(Buffer.from(response.data));
+    res.send(Buffer.from(elevenResponse.data));
 
   } catch (err) {
     console.error("🧠 ElevenLabs TTS error:", err.response?.data || err.message);
     res.status(500).json({ error: "Failed to generate audio" });
-  }  
+  }
 });
 
 // Serve static frontend
