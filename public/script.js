@@ -5,18 +5,20 @@ const toggleSpeech = document.getElementById('toggleSpeech');
 
 let speechEnabled = true;
 
+// Toggle speech playback
 toggleSpeech.addEventListener('click', () => {
   speechEnabled = !speechEnabled;
-  toggleSpeech.textContent = speechEnabled ? 'Disable Speech' : 'Enable Speech';
+  toggleSpeech.textContent = speechEnabled ? '🔊 Speech ON' : '🔇 Speech OFF';
 });
 
+// Send message to backend and get response
 sendBtn.addEventListener('click', async () => {
   const message = input.value.trim();
   if (!message) return;
 
   addMessage('user', message);
   input.value = '';
-  addMessage('michael', 'Typing...', true);
+  addMessage('michael', 'Michael is typing...', true);
 
   try {
     const res = await fetch('/speak', {
@@ -24,7 +26,7 @@ sendBtn.addEventListener('click', async () => {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ message })
+      body: JSON.stringify({ text: message }) // ✅ FIXED: 'text' not 'message'
     });
 
     if (!res.ok) {
@@ -36,8 +38,8 @@ sendBtn.addEventListener('click', async () => {
     const audioBlob = await res.blob();
     const audioURL = URL.createObjectURL(audioBlob);
 
-    updateLastMessage("Here's my reply.");
-    
+    updateLastMessage("Here's my reply. 🎧");
+
     if (speechEnabled) {
       const audio = new Audio(audioURL);
       audio.play();
@@ -49,6 +51,7 @@ sendBtn.addEventListener('click', async () => {
   }
 });
 
+// Add new message to chatbox
 function addMessage(sender, text, isTyping = false) {
   const msgDiv = document.createElement('div');
   msgDiv.classList.add('message', sender);
@@ -58,6 +61,7 @@ function addMessage(sender, text, isTyping = false) {
   chatbox.scrollTop = chatbox.scrollHeight;
 }
 
+// Update the last message (usually the typing one)
 function updateLastMessage(newText) {
   const lastMsg = chatbox.querySelector('.message.typing');
   if (lastMsg) {
