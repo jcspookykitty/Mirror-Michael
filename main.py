@@ -40,4 +40,4 @@ def talk_to_michael(user_text):
     print("Michael says:", reply.get("text", "[No text found]"))
 
 # Example use
-talk_to_michael("Hi Michael, how do you feel today?")
+talk_to_michael("Hi Michael, how are you today?")
