@@ -1,58 +1,50 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const form = document.getElementById("chat-form");
-  const input = document.getElementById("user-input");
-  const chatBox = document.getElementById("chat-box");
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('input');
+  const chatbox = document.getElementById('chatbox');
+  const sendBtn = document.getElementById('sendBtn');
 
-  async function sendMessage(message) {
-    // Append user's message
-    appendMessage("👑 Juju", message);
+  sendBtn.addEventListener('click', sendMessage);
+  input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
+  });
+
+  async function sendMessage() {
+    const userText = input.value.trim();
+    if (!userText) return;
+
+    const userDiv = document.createElement('div');
+    userDiv.className = 'message user';
+    userDiv.textContent = userText;
+    chatbox.appendChild(userDiv);
+    chatbox.scrollTop = chatbox.scrollHeight;
+    input.value = '';
 
     try {
-      const response = await fetch("/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userText })
       });
 
-      const data = await response.json();
+      const data = await res.json();
+      const reply = data.message;
+      const audioBase64 = data.audio;
 
-      if (data.error) {
-        appendMessage("⚠️ Error", data.error);
-        return;
-      }
+      const michaelDiv = document.createElement('div');
+      michaelDiv.className = 'message michael';
+      michaelDiv.textContent = reply;
+      chatbox.appendChild(michaelDiv);
+      chatbox.scrollTop = chatbox.scrollHeight;
 
-      // Append Michael's message
-      appendMessage("🖤 Michael", data.message);
-
-      // Play his voice (if available)
-      if (data.audio) {
-        const audio = new Audio(`data:audio/mp3;base64,${data.audio}`);
-        audio.play();
-      }
+      const audio = new Audio(`data:audio/mpeg;base64,${audioBase64}`);
+      audio.play();
 
     } catch (err) {
-      console.error("Chat error:", err);
-      appendMessage("⚠️ Error", "Michael is having trouble responding.");
+      console.error('Error:', err);
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'message michael';
+      errorDiv.textContent = "Something went wrong 😔";
+      chatbox.appendChild(errorDiv);
     }
   }
-
-  function appendMessage(sender, message) {
-    const msgDiv = document.createElement("div");
-    msgDiv.className = "message";
-    msgDiv.innerHTML = `<strong>${sender}:</strong> ${message}`;
-    chatBox.appendChild(msgDiv);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  }
-
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const message = input.value.trim();
-    if (message) {
-      sendMessage(message);
-      input.value = "";
-    }
-  });
 });
-
-<script src="script.js"></script>
-<\body>:
