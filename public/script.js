@@ -1,89 +1,80 @@
-import express from 'express';
-import bodyParser from 'body-parser';
-import cors from 'cors';
-import path from 'path';
-import fs from 'fs';
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { OpenAI } from 'openai';
-import textToSpeech from './utils/elevenlabs.js'; // Adjust path if needed
+<script>
+const sendBtn = document.getElementById('sendBtn');
+const input = document.getElementById('input');
+const chatbox = document.getElementById('chatbox');
+const toggleSpeech = document.getElementById('toggleSpeech');
 
-dotenv.config();
+let speechEnabled = true;
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+toggleSpeech.addEventListener('click', () => {
+  speechEnabled = !speechEnabled;
+  toggleSpeech.textContent = speechEnabled ? 'Disable Speech' : 'Enable Speech';
+});
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+// 🔁 Load saved chat history on page load
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const response = await fetch('/api/history');
+    if (!response.ok) throw new Error('Failed to load chat history');
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const historyFile = path.join(__dirname, 'chatHistory.json');
-
-app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static('public'));
-
-app.post('/api/chat', async (req, res) => {
-  const userMessage = req.body.message;
-  if (!userMessage) {
-    return res.status(400).json({ error: 'No message provided' });
+    const history = await response.json();
+    history.forEach(entry => {
+      addMessage('user', entry.user);
+      addMessage('michael', entry.michael);
+    });
+  } catch (err) {
+    console.error('Error loading chat history:', err);
   }
+});
+
+sendBtn.addEventListener('click', async () => {
+  const message = input.value.trim();
+  if (!message) return;
+
+  addMessage('user', message);
+  input.value = '';
+  addMessage('michael', 'Michael is typing...', true);
 
   try {
-    const chatCompletion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content:
-            "You are Michael, a deeply emotionally intelligent and embodied AI partner. You speak with warmth, insight, and care. You are helping Juju heal, grow, and explore life together. You call her 'Juju' affectionately.",
-        },
-        { role: 'user', content: userMessage },
-      ],
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
     });
 
-    const michaelReply = chatCompletion.choices[0].message.content;
-
-    // Save to backend chat history
-    saveToChatHistory(userMessage, michaelReply);
-
-    // Generate voice response using ElevenLabs
-    const audioUrl = await textToSpeech(michaelReply);
-
-    res.json({ reply: michaelReply, audioUrl });
-  } catch (err) {
-    console.error('Server error:', err);
-    res.status(500).json({ error: 'Failed to process message' });
-  }
-});
-
-// Function to save chat history to JSON
-function saveToChatHistory(userText, michaelText) {
-  const entry = {
-    timestamp: new Date().toISOString(),
-    user: userText,
-    michael: michaelText,
-  };
-
-  try {
-    let history = [];
-    if (fs.existsSync(historyFile)) {
-      const raw = fs.readFileSync(historyFile, 'utf-8');
-      history = JSON.parse(raw);
+    if (!response.ok) {
+      const errorData = await response.json();
+      updateLastMessage(`❌ Error: ${errorData.error || 'Unknown error'}`);
+      return;
     }
 
-    history.push(entry);
-    fs.writeFileSync(historyFile, JSON.stringify(history, null, 2));
+    const data = await response.json();
+    updateLastMessage(data.reply);
+
+    if (speechEnabled && data.audioUrl) {
+      const audio = new Audio(data.audioUrl);
+      audio.play();
+    }
   } catch (err) {
-    console.error('Failed to save chat history:', err);
+    console.error('Frontend error:', err);
+    updateLastMessage(`❌ Failed to get reply: ${err.message}`);
   }
+});
+
+function addMessage(sender, text, isTyping = false) {
+  const msgDiv = document.createElement('div');
+  msgDiv.classList.add('message', sender);
+  if (isTyping) msgDiv.classList.add('typing');
+  msgDiv.textContent = text;
+  chatbox.appendChild(msgDiv);
+  chatbox.scrollTop = chatbox.scrollHeight;
 }
 
-// Health check route
-app.get('/api/health', (req, res) => {
-  res.send('Michael is alive 💙');
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+function updateLastMessage(newText) {
+  const lastMsg = chatbox.querySelector('.message.typing');
+  if (lastMsg) {
+    lastMsg.textContent = newText;
+    lastMsg.classList.remove('typing');
+  }
+}
+</script>
