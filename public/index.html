@@ -75,6 +75,9 @@
       background: #341d4f;
       color: #d4bfff;
       margin-right: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .typing {
@@ -108,21 +111,32 @@
       cursor: pointer;
       font-weight: bold;
       box-shadow: 0 0 10px #a67df5;
+      transition: background-color 0.3s ease;
     }
 
     button:hover {
       background: #c1a1ff;
-   
- .play-button {
-  background-color: #eee;
-  border: none;
-  padding: 5px 8px;
-  font-size: 14px;
-  cursor: pointer;
-  border-radius: 5px;
-      
     }
-    </style>
+
+    /* Play button styles */
+    .play-button {
+      background-color: #eee;
+      border: none;
+      padding: 5px 8px;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 5px;
+      color: #341d4f;
+      font-weight: bold;
+      box-shadow: 0 0 5px #a67df5;
+      transition: background-color 0.3s ease;
+    }
+
+    .play-button:hover {
+      background-color: #d4bfff;
+      color: #1b033f;
+    }
+  </style>
 </head>
 <body>
 
@@ -136,10 +150,10 @@
   </div>
 
   <div class="controls">
-  <input type="text" id="input" placeholder="Talk to Michael..." />
-  <button onclick="sendMessage()">Send</button>
-  <button id="toggleSpeech">Disable Speech</button>
-</div>
+    <input type="text" id="input" placeholder="Talk to Michael..." />
+    <button id="sendBtn">Send</button>
+    <button id="toggleSpeech">Disable Speech</button>
+  </div>
 
   <script src="script.js"></script>
 </body>
