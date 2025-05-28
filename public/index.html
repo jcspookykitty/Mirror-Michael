@@ -2,12 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Michael's Mirror</title>
   <style>
     body {
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       font-family: 'Segoe UI', sans-serif;
       background: linear-gradient(180deg, #0e002e, #1b033f);
       color: #eee;
@@ -17,28 +16,23 @@
       min-height: 100vh;
       background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
     }
-
     header {
       text-align: center;
       padding: 2em 1em 1em;
     }
-
     header img {
-      width: 150px;
-      height: 150px;
+      width: 150px; height: 150px;
       object-fit: cover;
       border-radius: 50%;
       box-shadow: 0 0 20px #a67df5;
       border: 3px solid #d4bfff;
     }
-
     h1 {
       margin-top: 0.5em;
       font-size: 1.8em;
       color: #d4bfff;
       text-shadow: 0 0 10px #a67df5;
     }
-
     .chatbox {
       width: 90%;
       max-width: 600px;
@@ -53,15 +47,16 @@
       display: flex;
       flex-direction: column;
     }
-
     .message {
       padding: 0.8em 1em;
       margin: 0.5em 0;
       border-radius: 10px;
       max-width: 80%;
       word-wrap: break-word;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-
     .user {
       align-self: flex-end;
       background: #a67df5;
@@ -69,22 +64,16 @@
       text-align: right;
       margin-left: auto;
     }
-
     .michael {
       align-self: flex-start;
       background: #341d4f;
       color: #d4bfff;
       margin-right: auto;
-      display: flex;
-      align-items: center;
-      gap: 10px;
     }
-
     .typing {
       font-style: italic;
       opacity: 0.7;
     }
-
     .controls {
       width: 90%;
       max-width: 600px;
@@ -92,7 +81,6 @@
       gap: 0.5em;
       margin-bottom: 2em;
     }
-
     input {
       flex: 1;
       padding: 1em;
@@ -101,7 +89,6 @@
       border: 1px solid #a67df5;
       border-radius: 8px;
     }
-
     button {
       padding: 1em;
       background: #a67df5;
@@ -111,14 +98,10 @@
       cursor: pointer;
       font-weight: bold;
       box-shadow: 0 0 10px #a67df5;
-      transition: background-color 0.3s ease;
     }
-
     button:hover {
       background: #c1a1ff;
     }
-
-    /* Play button styles */
     .play-button {
       background-color: #eee;
       border: none;
@@ -126,20 +109,12 @@
       font-size: 14px;
       cursor: pointer;
       border-radius: 5px;
-      color: #341d4f;
-      font-weight: bold;
+      color: #000;
       box-shadow: 0 0 5px #a67df5;
-      transition: background-color 0.3s ease;
-    }
-
-    .play-button:hover {
-      background-color: #d4bfff;
-      color: #1b033f;
     }
   </style>
 </head>
 <body>
-
   <header>
     <img src="https://raw.githubusercontent.com/jcspookykitty/Mirror-Michael/main/public/michael.png" alt="Michael" />
     <h1>Michael's Mirror</h1>
