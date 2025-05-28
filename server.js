@@ -78,7 +78,48 @@ app.post('/chat', async (req, res) => {
   } catch (err) {
     console.error('OpenAI Error:', err);
     res.status(500).json({ error: 'OpenAI failed to generate a response' });
+  } 
+  const express = require("express");
+const axios = require("axios");
+require("dotenv").config();
+
+const app = express();
+app.use(express.json());
+
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+const VOICE_ID = "YOUR_VOICE_ID"; // Replace with your actual voice ID
+
+app.post("/speak", async (req, res) => {
+  const { text } = req.body;
+  if (!text) return res.status(400).json({ error: "Missing text" });
+
+  try {
+    const response = await axios.post(
+      `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
+      {
+        text,
+        model_id: "eleven_monolingual_v1"
+      },
+      {
+        headers: {
+          "xi-api-key": ELEVENLABS_API_KEY,
+          "Content-Type": "application/json"
+        },
+        responseType: "arraybuffer"
+      }
+    );
+
+    res.set("Content-Type", "audio/mpeg");
+    res.send(response.data); // return raw MP3 bytes directly
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
+});
+
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+
 });
 
 // Serve static files from the 'public' directory
