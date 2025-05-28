@@ -1,52 +1,22 @@
 body {
-  margin: 0;
-  font-family: "Segoe UI", sans-serif;
-  background: linear-gradient(to bottom right, #1e1e2f, #3a2e5c);
-  color: #f6e6ff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
+  background: radial-gradient(circle at top, #2a004d, #000);
+  color: #eee;
+  font-family: 'Orbitron', sans-serif;
+  text-align: center;
+  padding: 2em;
 }
 
-h1, h2 {
-  font-size: 2.5rem;
-  margin-bottom: 10px;
-  color: #ffb3ff;
+.container {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2em;
+  border-radius: 15px;
+  border: 1px solid #8a2be2;
+  backdrop-filter: blur(10px);
 }
 
-.chatbox {
-  width: 90%;
-  max-width: 600px;
-  height: 400px;
-  overflow-y: auto;
-  border: 1px solid #aaa;
-  background-color: #2e1f3c;
-  border-radius: 10px;
-  padding: 15px;
-  margin-bottom: 20px;
-  box-shadow: 0 0 15px rgba(255, 179, 255, 0.3);
-}
-
-input, button {
-  padding: 10px;
-  font-size: 1rem;
-  border-radius: 5px;
-  margin: 5px;
-  border: none;
-}
-
-input {
-  width: 70%;
-}
-
-button {
-  background-color: #c678dd;
-  color: white;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #a259c3;
+.portrait {
+  width: 200px;
+  border-radius: 50%;
+  margin-top: 1em;
+  box-shadow: 0 0 20px #8a2be2;
 }
