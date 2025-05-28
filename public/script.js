@@ -22,11 +22,35 @@ async function sendMessage() {
   const userText = input.value.trim();
   if (!userText) return;
 
-  const userDiv = document.createElement('div');
-  userDiv.className = 'message user';
-  userDiv.textContent = userText;
-  chatbox.appendChild(userDiv);
-  input.value = '';
+  // Add Michael's text
+const messageText = document.createElement('span');
+messageText.textContent = reply;
+michaelDiv.appendChild(messageText);
+
+// Add Play button
+const playButton = document.createElement('button');
+playButton.textContent = '🔊 Play';
+playButton.className = 'play-button';
+playButton.style.marginLeft = '10px';
+playButton.onclick = async () => {
+  try {
+    const voiceRes = await fetch('/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: reply })
+    });
+    const audioBlob = await voiceRes.blob();
+    const audioURL = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioURL);
+    await audio.play();
+  } catch (err) {
+    console.error('Playback failed:', err);
+    alert('Playback failed. Try again.');
+  }
+};
+
+michaelDiv.appendChild(playButton);
+chatbox.appendChild(michaelDiv);
 
   // Typing indicator
   const typingDiv = document.createElement('div');
