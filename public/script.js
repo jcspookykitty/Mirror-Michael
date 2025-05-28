@@ -14,7 +14,7 @@ function addMessage(text, sender = 'michael', audioUrl = null) {
     const playBtn = document.createElement('button');
     playBtn.textContent = '🔊';
     playBtn.className = 'play-button';
-    playBtn.title = 'Play message audio';
+    playBtn.title = 'Play Michael\'s voice';
     playBtn.addEventListener('click', () => {
       playAudio(audioUrl);
     });
@@ -23,7 +23,6 @@ function addMessage(text, sender = 'michael', audioUrl = null) {
 
   const textSpan = document.createElement('span');
   textSpan.textContent = text;
-
   messageEl.appendChild(textSpan);
   chatbox.appendChild(messageEl);
   chatbox.scrollTop = chatbox.scrollHeight;
@@ -45,13 +44,13 @@ function removeTypingIndicator() {
   if (typingEl) typingEl.remove();
 }
 
-// Play audio from URL or base64 data
+// Play audio from URL or base64
 function playAudio(url) {
   const audio = new Audio(url);
   audio.play();
 }
 
-// Send message to backend and handle response
+// Send message to backend and display Michael's response
 async function sendMessage() {
   const userText = input.value.trim();
   if (!userText) return;
@@ -68,4 +67,41 @@ async function sendMessage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: userText }),
-   
+    });
+
+    if (!response.ok) {
+      throw new Error('Server error');
+    }
+
+    const data = await response.json();
+    removeTypingIndicator();
+
+    addMessage(data.reply, 'michael', data.audioUrl);
+
+    // Optional: auto-play only if speechEnabled is true (you can toggle it with a button)
+    if (speechEnabled && data.audioUrl) {
+      playAudio(data.audioUrl);
+    }
+
+  } catch (error) {
+    removeTypingIndicator();
+    addMessage('Sorry, something went wrong. Please try again.', 'michael');
+    console.error('Chat error:', error);
+  } finally {
+    input.disabled = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+// Toggle speech playback setting
+toggleSpeechBtn.addEventListener('click', () => {
+  speechEnabled = !speechEnabled;
+  toggleSpeechBtn.textContent = speechEnabled ? '🔊 Speech ON' : '🔇 Speech OFF';
+});
+
+// Event listeners
+sendBtn.addEventListener('click', sendMessage);
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') sendMessage();
+});
