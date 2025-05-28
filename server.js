@@ -15,6 +15,14 @@ dotenv.config(); // Load .env variables
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Check API keys at startup
+if (!process.env.OPENAI_API_KEY) {
+  console.warn('⚠️ OPENAI_API_KEY is missing from environment variables!');
+}
+if (!process.env.ELEVENLABS_API_KEY) {
+  console.warn('⚠️ ELEVENLABS_API_KEY is missing from environment variables!');
+}
+
 // App configuration
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -25,11 +33,16 @@ app.use(bodyParser.json());
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // === Memory Setup ===
-const MEMORY_FILE = './memory.json';
+const MEMORY_FILE = path.join(__dirname, 'memory.json');
 let memory = { messages: [] };
 
 if (fs.existsSync(MEMORY_FILE)) {
-  memory = JSON.parse(fs.readFileSync(MEMORY_FILE));
+  try {
+    memory = JSON.parse(fs.readFileSync(MEMORY_FILE));
+  } catch (err) {
+    console.error('Failed to parse memory.json, starting fresh memory.', err);
+    memory = { messages: [] };
+  }
 }
 
 function saveMemory(message) {
@@ -42,12 +55,14 @@ function saveMemory(message) {
 
 // === ElevenLabs Setup ===
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-const VOICE_ID = "agent_01jwa49y8kez985x36mq9yk01g"; // ✅ Your actual voice ID
+const VOICE_ID = "agent_01jwa49y8kez985x36mq9yk01g"; // Your voice ID here
 
 // === Unified Chat + Voice Endpoint ===
 app.post('/chat', async (req, res) => {
   const userInput = req.body.message;
   if (!userInput) return res.status(400).json({ error: 'Missing user input' });
+
+  console.log('User input:', userInput);
 
   const userMessage = { role: 'user', content: userInput };
   saveMemory(userMessage);
@@ -60,16 +75,23 @@ app.post('/chat', async (req, res) => {
   const messages = [systemPrompt, ...memory.messages];
 
   try {
-    // GPT-4 chat
+    console.log('Sending messages to OpenAI:', messages);
+
+    // GPT-4 model - fallback to gpt-3.5-turbo if needed
+    const modelName = 'gpt-4'; // Change to 'gpt-3.5-turbo' if you don’t have GPT-4 access
+
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: modelName,
       messages: messages,
     });
 
     const michaelReply = completion.choices[0].message.content;
+    console.log('OpenAI reply:', michaelReply);
     saveMemory({ role: 'assistant', content: michaelReply });
 
-    // ElevenLabs voice
+    // ElevenLabs voice synthesis
+    console.log('Sending text to ElevenLabs TTS');
+
     const elevenResponse = await axios.post(
       `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
       { text: michaelReply, model_id: "eleven_monolingual_v1" },
