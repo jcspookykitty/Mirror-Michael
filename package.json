@@ -1,18 +1,80 @@
-{
-  "type": "module",
-  "name": "michael-ai-server",
-  "version": "1.0.0",
-  "description": "Michael AI backend with chat and ElevenLabs TTS",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "axios": "^1.6.0",
-    "body-parser": "^1.20.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "openai": "^4.0.0"
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import dotenv from 'dotenv';
+import OpenAI from 'openai';
+import axios from 'axios';
+
+dotenv.config();
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.static('public'));
+
+// OpenAI setup
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// POST /chat
+app.post('/chat', async (req, res) => {
+  try {
+    const userMessage = req.body.message;
+
+    const completion = await openai.chat.completions.create({
+      messages: [{ role: 'user', content: userMessage }],
+      model: 'gpt-4', // You can also use 'gpt-3.5-turbo'
+    });
+
+    const reply = completion.choices[0].message.content;
+
+    res.json({ message: reply });
+  } catch (err) {
+    console.error('Chat error:', err);
+    res.status(500).json({ message: 'Failed to get response from OpenAI.' });
   }
-}
+});
+
+// POST /speak
+app.post('/speak', async (req, res) => {
+  try {
+    const text = req.body.text;
+
+    const response = await axios({
+      method: 'POST',
+      url: 'https://api.elevenlabs.io/v1/text-to-speech/YOUR_VOICE_ID',
+      headers: {
+        'xi-api-key': process.env.ELEVENLABS_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      responseType: 'arraybuffer',
+      data: {
+        text: text,
+        model_id: 'eleven_monolingual_v1',
+        voice_settings: {
+          stability: 0.75,
+          similarity_boost: 0.75,
+        },
+      },
+    });
+
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': response.data.length,
+    });
+
+    res.send(response.data);
+  } catch (err) {
+    console.error('TTS error:', err);
+    res.status(500).json({ message: 'Failed to synthesize speech.' });
+  }
+});
+
+// Start server
+app.listen(port, () => {
+  console.log(`Michael's Mirror server is running on port ${port}`);
+});
