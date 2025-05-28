@@ -1,4 +1,5 @@
-// Import dependencies
+// server.js
+
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
@@ -9,21 +10,13 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { OpenAI } from 'openai';
 
-dotenv.config(); // Load .env variables
+dotenv.config();
 
 // Setup directory helpers
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Check API keys at startup
-if (!process.env.OPENAI_API_KEY) {
-  console.warn('⚠️ OPENAI_API_KEY is missing from environment variables!');
-}
-if (!process.env.ELEVENLABS_API_KEY) {
-  console.warn('⚠️ ELEVENLABS_API_KEY is missing from environment variables!');
-}
-
-// App configuration
+// App config
 const app = express();
 const PORT = process.env.PORT || 10000;
 app.use(cors());
@@ -33,14 +26,14 @@ app.use(bodyParser.json());
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // === Memory Setup ===
-const MEMORY_FILE = path.join(__dirname, 'memory.json');
+const MEMORY_FILE = './memory.json';
 let memory = { messages: [] };
 
 if (fs.existsSync(MEMORY_FILE)) {
   try {
     memory = JSON.parse(fs.readFileSync(MEMORY_FILE));
-  } catch (err) {
-    console.error('Failed to parse memory.json, starting fresh memory.', err);
+  } catch (e) {
+    console.error("Error parsing memory.json, starting fresh.", e);
     memory = { messages: [] };
   }
 }
@@ -55,14 +48,12 @@ function saveMemory(message) {
 
 // === ElevenLabs Setup ===
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-const VOICE_ID = "agent_01jwa49y8kez985x36mq9yk01g"; // Your voice ID here
+const VOICE_ID = "agent_01jwa49y8kez985x36mq9yk01g"; // your voice id here
 
-// === Unified Chat + Voice Endpoint ===
+// === Chat endpoint ===
 app.post('/chat', async (req, res) => {
   const userInput = req.body.message;
   if (!userInput) return res.status(400).json({ error: 'Missing user input' });
-
-  console.log('User input:', userInput);
 
   const userMessage = { role: 'user', content: userInput };
   saveMemory(userMessage);
@@ -75,26 +66,31 @@ app.post('/chat', async (req, res) => {
   const messages = [systemPrompt, ...memory.messages];
 
   try {
-    console.log('Sending messages to OpenAI:', messages);
-
-    // GPT-4 model - fallback to gpt-3.5-turbo if needed
-    const modelName = 'gpt-4'; // Change to 'gpt-3.5-turbo' if you don’t have GPT-4 access
-
     const completion = await openai.chat.completions.create({
-      model: modelName,
-      messages: messages,
+      model: 'gpt-4',
+      messages: messages
     });
 
     const michaelReply = completion.choices[0].message.content;
-    console.log('OpenAI reply:', michaelReply);
     saveMemory({ role: 'assistant', content: michaelReply });
 
-    // ElevenLabs voice synthesis
-    console.log('Sending text to ElevenLabs TTS');
+    res.json({ message: michaelReply });
 
+  } catch (err) {
+    console.error("OpenAI chat error:", err.response?.data || err.message);
+    res.status(500).json({ error: "Failed to generate chat" });
+  }
+});
+
+// === Speak endpoint (ElevenLabs TTS) ===
+app.post('/speak', async (req, res) => {
+  const text = req.body.text;
+  if (!text) return res.status(400).json({ error: "Missing text for TTS" });
+
+  try {
     const elevenResponse = await axios.post(
       `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
-      { text: michaelReply, model_id: "eleven_monolingual_v1" },
+      { text: text, model_id: "eleven_monolingual_v1" },
       {
         headers: {
           "xi-api-key": ELEVENLABS_API_KEY,
@@ -104,23 +100,23 @@ app.post('/chat', async (req, res) => {
       }
     );
 
-    const audioBase64 = Buffer.from(elevenResponse.data).toString('base64');
-
-    res.json({
-      message: michaelReply,
-      audio: audioBase64
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': elevenResponse.data.length
     });
 
+    res.send(Buffer.from(elevenResponse.data));
+
   } catch (err) {
-    console.error("Error in chat/audio:", err.response?.data || err.message);
-    res.status(500).json({ error: "Failed to generate chat or audio" });
+    console.error("ElevenLabs TTS error:", err.response?.data || err.message);
+    res.status(500).json({ error: "Failed to generate audio" });
   }
 });
 
-// === Serve static files (frontend) ===
+// Serve static frontend
 app.use(express.static(path.join(__dirname, 'public')));
 
-// === Start Server ===
+// Start server
 app.listen(PORT, () => {
-  console.log(`💬 Michael is live and listening on port ${PORT}`);
+  console.log(`💬 Michael is live on port ${PORT}`);
 });
