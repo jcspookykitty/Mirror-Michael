@@ -4,10 +4,8 @@ import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { Configuration, OpenAIApi } from 'openai';
+import OpenAI from 'openai';
 import axios from 'axios';
-import fs from 'fs';
-import https from 'https';
 
 dotenv.config();
 
@@ -21,18 +19,15 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(join(__dirname, 'public')));
 
-// --- OpenAI setup ---
-const openai = new OpenAIApi(
-  new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-  })
-);
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
-// --- Handle chat messages ---
 app.post('/chat', async (req, res) => {
   const userMessage = req.body.message;
+
   try {
-    const completion = await openai.createChatCompletion({
+    const completion = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: [
         { role: 'system', content: 'You are Michael, a compassionate and emotionally intelligent AI.' },
@@ -40,9 +35,8 @@ app.post('/chat', async (req, res) => {
       ]
     });
 
-    const reply = completion.data.choices[0].message.content;
+    const reply = completion.choices[0].message.content;
 
-    // TTS request to ElevenLabs
     const audioResponse = await axios({
       method: 'POST',
       url: `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`,
@@ -65,12 +59,11 @@ app.post('/chat', async (req, res) => {
     res.json({ message: reply, audio: audioBase64 });
 
   } catch (err) {
-    console.error(err);
+    console.error('Error:', err);
     res.status(500).json({ message: 'An error occurred.' });
   }
 });
 
-// --- Start server ---
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
