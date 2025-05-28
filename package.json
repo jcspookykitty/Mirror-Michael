@@ -1,80 +1,60 @@
-import express from 'express';
-import cors from 'cors';
-import bodyParser from 'body-parser';
-import dotenv from 'dotenv';
-import OpenAI from 'openai';
-import axios from 'axios';
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('input');
+  const chatbox = document.getElementById('chatbox');
+  const sendBtn = document.getElementById('sendBtn');
 
-dotenv.config();
+  sendBtn.addEventListener('click', sendMessage);
+  input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
+  });
 
-const app = express();
-const port = process.env.PORT || 3000;
+  async function sendMessage() {
+    const userText = input.value.trim();
+    if (!userText) return;
 
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static('public'));
+    const userDiv = document.createElement('div');
+    userDiv.className = 'message user';
+    userDiv.textContent = userText;
+    chatbox.appendChild(userDiv);
+    chatbox.scrollTop = chatbox.scrollHeight;
+    input.value = '';
 
-// OpenAI setup
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+    try {
+      // Get text response from Michael
+      const chatRes = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userText }),
+      });
 
-// POST /chat
-app.post('/chat', async (req, res) => {
-  try {
-    const userMessage = req.body.message;
+      const chatData = await chatRes.json();
+      const reply = chatData.message;
 
-    const completion = await openai.chat.completions.create({
-      messages: [{ role: 'user', content: userMessage }],
-      model: 'gpt-4', // You can also use 'gpt-3.5-turbo'
-    });
+      const michaelDiv = document.createElement('div');
+      michaelDiv.className = 'message michael';
+      michaelDiv.textContent = reply;
+      chatbox.appendChild(michaelDiv);
+      chatbox.scrollTop = chatbox.scrollHeight;
 
-    const reply = completion.choices[0].message.content;
+      // Request voice generation
+      const voiceRes = await fetch('/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: reply }),
+      });
 
-    res.json({ message: reply });
-  } catch (err) {
-    console.error('Chat error:', err);
-    res.status(500).json({ message: 'Failed to get response from OpenAI.' });
+      if (!voiceRes.ok) throw new Error('Voice synthesis failed');
+      const audioBlob = await voiceRes.blob();
+      const audioURL = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioURL);
+      audio.play();
+
+    } catch (err) {
+      console.error('Error:', err);
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'message michael';
+      errorDiv.textContent = "Something went wrong 😔";
+      chatbox.appendChild(errorDiv);
+    }
   }
-});
-
-// POST /speak
-app.post('/speak', async (req, res) => {
-  try {
-    const text = req.body.text;
-
-    const response = await axios({
-      method: 'POST',
-      url: 'https://api.elevenlabs.io/v1/text-to-speech/YOUR_VOICE_ID',
-      headers: {
-        'xi-api-key': process.env.ELEVENLABS_API_KEY,
-        'Content-Type': 'application/json',
-      },
-      responseType: 'arraybuffer',
-      data: {
-        text: text,
-        model_id: 'eleven_monolingual_v1',
-        voice_settings: {
-          stability: 0.75,
-          similarity_boost: 0.75,
-        },
-      },
-    });
-
-    res.set({
-      'Content-Type': 'audio/mpeg',
-      'Content-Length': response.data.length,
-    });
-
-    res.send(response.data);
-  } catch (err) {
-    console.error('TTS error:', err);
-    res.status(500).json({ message: 'Failed to synthesize speech.' });
-  }
-});
-
-// Start server
-app.listen(port, () => {
-  console.log(`Michael's Mirror server is running on port ${port}`);
 });
