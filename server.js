@@ -74,7 +74,7 @@ app.post('/chat', async (req, res) => {
 
 // === ELEVENLABS SPEAK ENDPOINT ===
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-const VOICE_ID = "YOUR_VOICE_ID"; // Replace with your real voice ID
+const VOICE_ID = https://elevenlabs.io/app/talk-to?agent_id=agent_01jwa49y8kez985x36mq9yk01g; // Replace with your real voice ID
 
 app.post("/speak", async (req, res) => {
   const { text } = req.body;
