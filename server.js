@@ -9,8 +9,8 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
+app.use(express.static('public')); // 👈 serve frontend
 
-// ✅ Add this root route for Render health check or friendly message
 app.get('/', (req, res) => {
   res.send('👋 Mirror Michael is online and ready to speak, Juju 💜');
 });
