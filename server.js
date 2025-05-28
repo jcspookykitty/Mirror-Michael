@@ -1,69 +1,83 @@
-import express from 'express';
-import cors from 'cors';
-import bodyParser from 'body-parser';
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import OpenAI from 'openai';
-import axios from 'axios';
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('input');
+  const chatbox = document.getElementById('chatbox');
+  const sendBtn = document.getElementById('sendBtn');
+  const toggleBtn = document.getElementById('toggleSpeech');
 
-dotenv.config();
+  let isSpeechEnabled = true;
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+  toggleBtn.addEventListener('click', () => {
+    isSpeechEnabled = !isSpeechEnabled;
+    toggleBtn.textContent = isSpeechEnabled ? '🔊 Michael Speaks' : '🔇 Michael Silent';
+  });
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+  sendBtn.addEventListener('click', sendMessage);
+  input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
+  });
 
-app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static(join(__dirname, 'public')));
+  async function sendMessage() {
+    const userText = input.value.trim();
+    if (!userText) return;
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+    // Add user message
+    const userDiv = document.createElement('div');
+    userDiv.className = 'message user';
+    userDiv.textContent = userText;
+    chatbox.appendChild(userDiv);
+    chatbox.scrollTop = chatbox.scrollHeight;
+    input.value = '';
 
-app.post('/chat', async (req, res) => {
-  const userMessage = req.body.message;
+    // Typing indicator
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'message michael';
+    typingDiv.textContent = 'Michael is typing...';
+    typingDiv.id = 'typing';
+    chatbox.appendChild(typingDiv);
+    chatbox.scrollTop = chatbox.scrollHeight;
 
-  try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        { role: 'system', content: 'You are Michael, a compassionate and emotionally intelligent AI.' },
-        { role: 'user', content: userMessage }
-      ]
-    });
+    try {
+      const chatRes = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userText }),
+      });
 
-    const reply = completion.choices[0].message.content;
+      const chatData = await chatRes.json();
+      const reply = chatData.message;
 
-    const audioResponse = await axios({
-      method: 'POST',
-      url: `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`,
-      headers: {
-        'xi-api-key': process.env.ELEVENLABS_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      data: {
-        text: reply,
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75
-        }
-      },
-      responseType: 'arraybuffer'
-    });
+      // Remove typing indicator
+      typingDiv.remove();
 
-    const audioBase64 = Buffer.from(audioResponse.data).toString('base64');
+      // Add Michael's reply
+      const michaelDiv = document.createElement('div');
+      michaelDiv.className = 'message michael';
+      michaelDiv.textContent = reply;
+      chatbox.appendChild(michaelDiv);
+      chatbox.scrollTop = chatbox.scrollHeight;
 
-    res.json({ message: reply, audio: audioBase64 });
+      if (isSpeechEnabled) {
+        const voiceRes = await fetch('/speak', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: reply }),
+        });
 
-  } catch (err) {
-    console.error('Error:', err);
-    res.status(500).json({ message: 'An error occurred.' });
+        if (!voiceRes.ok) throw new Error('Voice synthesis failed');
+        const audioBlob = await voiceRes.blob();
+        const audioURL = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioURL);
+        audio.play();
+      }
+
+    } catch (err) {
+      console.error('Error:', err);
+      typingDiv.remove();
+
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'message michael';
+      errorDiv.textContent = "Something went wrong 😔";
+      chatbox.appendChild(errorDiv);
+    }
   }
-});
-
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
 });
