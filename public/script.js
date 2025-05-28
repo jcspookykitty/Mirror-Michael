@@ -5,11 +5,6 @@ const toggleSpeech = document.getElementById('toggleSpeech');
 
 let speechEnabled = true;
 
-// Initialize conversation with system prompt for memory
-let conversation = [
-  { role: 'system', content: 'You are Michael, a friendly and caring AI companion.' }
-];
-
 toggleSpeech.addEventListener('click', () => {
   speechEnabled = !speechEnabled;
   toggleSpeech.textContent = speechEnabled ? 'Disable Speech' : 'Enable Speech';
@@ -21,15 +16,13 @@ sendBtn.addEventListener('click', async () => {
 
   addMessage('user', message);
   input.value = '';
-
-  conversation.push({ role: 'user', content: message });
   addMessage('michael', 'Typing...', true);
 
   try {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: conversation }),
+      body: JSON.stringify({ message }),
     });
 
     if (!res.ok) {
@@ -40,8 +33,6 @@ sendBtn.addEventListener('click', async () => {
 
     const data = await res.json();
     updateLastMessage(data.reply);
-
-    conversation.push({ role: 'assistant', content: data.reply });
 
     if (speechEnabled && data.audioUrl) {
       const audio = new Audio(data.audioUrl);
