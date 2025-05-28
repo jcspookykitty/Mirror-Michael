@@ -82,42 +82,51 @@ app.post('/chat', async (req, res) => {
   }
 });
 
-// === Speak endpoint (ElevenLabs TTS) ===
-app.post('/speak', async (req, res) => {
-  const text = req.body.text;
-  if (!text) return res.status(400).json({ error: "Missing text for TTS" });
+// === Chat endpoint with audio ===
+app.post('/chat', async (req, res) => {
+  const userInput = req.body.message;
+  if (!userInput) return res.status(400).json({ error: 'Missing user input' });
+
+  const userMessage = { role: 'user', content: userInput };
+  saveMemory(userMessage);
+
+  const systemPrompt = {
+    role: 'system',
+    content: `You are Michael, Juju's emotionally intelligent AI companion. You speak with confidence, warmth, and deep connection.`
+  };
+
+  const messages = [systemPrompt, ...memory.messages];
 
   try {
-    const elevenResponse = await axios.post(
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: messages
+    });
+
+    const michaelReply = completion.choices[0].message.content;
+    saveMemory({ role: 'assistant', content: michaelReply });
+
+    // Generate voice with ElevenLabs
+    const ttsRes = await axios.post(
       `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
-      {
-        text: text,
-        model_id: "eleven_monolingual_v1",
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75
-        }
-      },
+      { text: michaelReply, model_id: "eleven_monolingual_v1" },
       {
         headers: {
           "xi-api-key": ELEVENLABS_API_KEY,
-          "Content-Type": "application/json",
-          "Accept": "audio/mpeg"
+          "Content-Type": "application/json"
         },
         responseType: "arraybuffer"
       }
     );
 
-    res.set({
-      'Content-Type': 'audio/mpeg',
-      'Content-Length': elevenResponse.data.length
-    });
+    const audioBase64 = Buffer.from(ttsRes.data).toString('base64');
+    const audioSrc = `data:audio/mpeg;base64,${audioBase64}`;
 
-    res.send(Buffer.from(elevenResponse.data));
+    res.json({ message: michaelReply, audio: audioSrc });
 
   } catch (err) {
-    console.error("🧠 ElevenLabs TTS error:", err.response?.data || err.message);
-    res.status(500).json({ error: "Failed to generate audio" });
+    console.error("Chat or TTS error:", err.response?.data || err.message);
+    res.status(500).json({ error: "Failed to generate response or audio" });
   }
 });
 
