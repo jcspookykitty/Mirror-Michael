@@ -30,23 +30,36 @@
       border-radius: 10px;
       max-width: 80%;
       word-wrap: break-word;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .message.user {
       background: #4a90e2;
       align-self: flex-end;
       color: white;
+      justify-content: flex-end;
     }
 
     .message.michael {
       background: #333;
       align-self: flex-start;
       color: #fff;
+      justify-content: flex-start;
     }
 
     .message.typing {
       font-style: italic;
       opacity: 0.8;
+    }
+
+    .message.michael img.avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
     }
 
     #controls {
@@ -139,19 +152,50 @@
       }
     }
 
+    // Adds message with optional typing style
     function addMessage(sender, text, isTyping = false) {
       const msgDiv = document.createElement('div');
       msgDiv.classList.add('message', sender);
       if (isTyping) msgDiv.classList.add('typing');
-      msgDiv.textContent = text;
+
+      if (sender === 'michael') {
+        // Create avatar image element
+        const avatar = document.createElement('img');
+        avatar.src = 'michael.png';
+        avatar.alt = 'Michael';
+        avatar.classList.add('avatar');
+
+        // Create text node container
+        const textNode = document.createElement('span');
+        textNode.textContent = text;
+
+        // Append avatar and text side by side
+        msgDiv.appendChild(avatar);
+        msgDiv.appendChild(textNode);
+      } else {
+        // For user, just text
+        msgDiv.textContent = text;
+      }
+
       chatbox.appendChild(msgDiv);
       chatbox.scrollTop = chatbox.scrollHeight;
     }
 
+    // Update last typing message text and remove typing style
     function updateLastMessage(newText) {
       const lastMsg = chatbox.querySelector('.message.typing');
       if (lastMsg) {
-        lastMsg.textContent = newText;
+        // If Michael message, replace the text content inside span (keep avatar)
+        if (lastMsg.classList.contains('michael')) {
+          const textSpan = lastMsg.querySelector('span');
+          if (textSpan) {
+            textSpan.textContent = newText;
+          } else {
+            lastMsg.textContent = newText;
+          }
+        } else {
+          lastMsg.textContent = newText;
+        }
         lastMsg.classList.remove('typing');
       }
     }
