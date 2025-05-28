@@ -26,7 +26,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// POST /api/chat — gets AI response and audio
+// POST /api/chat — gets AI text reply and generates audio, then returns both
 app.post('/api/chat', async (req, res) => {
   const { message } = req.body;
   if (!message) {
@@ -34,7 +34,7 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
-    // 1. Get chat response from OpenAI
+    // 1. Get AI chat response
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -45,16 +45,17 @@ app.post('/api/chat', async (req, res) => {
 
     const reply = completion.choices[0].message.content;
 
-    // 2. Generate speech using OpenAI TTS (Onyx)
+    // 2. Generate speech audio from reply
     const speechResponse = await openai.audio.speech.create({
       model: 'tts-1',
       voice: 'onyx',
       input: reply,
     });
 
-    // 3. Save audio file
+    // 3. Save audio file locally
     const filename = `michael-${Date.now()}.mp3`;
     const filepath = path.join(__dirname, 'public/audio', filename);
+
     const audioStream = fs.createWriteStream(filepath);
     await new Promise((resolve, reject) => {
       speechResponse.body.pipe(audioStream);
@@ -62,15 +63,17 @@ app.post('/api/chat', async (req, res) => {
       speechResponse.body.on('error', reject);
     });
 
+    // 4. Send back both reply text and audio URL to frontend
     const audioUrl = `/audio/${filename}`;
     res.json({ reply, audioUrl });
+
   } catch (error) {
     console.error('Error in /api/chat:', error);
     res.status(500).json({ error: 'Failed to get AI response or synthesize audio' });
   }
 });
 
-// Optional: POST /speak — TTS only (if you want a separate speech endpoint)
+// Optional: POST /speak — just synthesize text to speech (if needed)
 app.post('/speak', async (req, res) => {
   const { text } = req.body;
   if (!text) {
@@ -87,6 +90,7 @@ app.post('/speak', async (req, res) => {
     const filename = `michael-${Date.now()}.mp3`;
     const filepath = path.join(__dirname, 'public/audio', filename);
     const audioStream = fs.createWriteStream(filepath);
+
     await new Promise((resolve, reject) => {
       speechResponse.body.pipe(audioStream);
       speechResponse.body.on('end', resolve);
@@ -95,13 +99,14 @@ app.post('/speak', async (req, res) => {
 
     const audioUrl = `/audio/${filename}`;
     res.json({ audioUrl });
+
   } catch (error) {
     console.error('Error in /speak:', error);
     res.status(500).json({ error: 'Failed to synthesize speech' });
   }
 });
 
-// Fallback to index.html for frontend routes
+// Fallback route: serve index.html for any unknown routes (SPA support)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
