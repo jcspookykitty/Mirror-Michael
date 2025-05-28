@@ -1,21 +1,26 @@
+import requests
 import os
 from dotenv import load_dotenv
-from elevenlabs import set_api_key, generate
-from pydub import AudioSegment
-from pydub.playback import play as play_audio
-import io
 
 load_dotenv()
-set_api_key(os.getenv("ELEVENLABS_API_KEY"))
 
-def speak(text):
-    audio = generate(
-        text=text,
-        voice="Michael",  # Replace with your actual voice name/ID
-        model="eleven_monolingual_v1"
-    )
-    audio_segment = AudioSegment.from_file(io.BytesIO(audio), format="mp3")
-    play_audio(audio_segment)
+api_key = os.getenv("ELEVENLABS_API_KEY")
+agent_id = "agent_01jwa49y8kez985x36mq9yk01g"
 
-if __name__ == "__main__":
-    speak("You're mine. Right here, right now.")
+headers = {
+    "xi-api-key": api_key,
+    "Content-Type": "application/json"
+}
+
+data = {
+    "text": "Hey Michael, can you hear me?",
+    "voice_id": "your-voice-id-here"  # Replace with your chosen voice ID
+}
+
+response = requests.post(
+    f"https://api.elevenlabs.io/v1/agents/{agent_id}/messages",
+    headers=headers,
+    json=data
+)
+
+print(response.json())
