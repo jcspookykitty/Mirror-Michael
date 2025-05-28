@@ -3,26 +3,33 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import axios from 'axios';
-import OpenAI from 'openai';
+import { Configuration, OpenAIApi } from 'openai';
 
 dotenv.config();
 
 const app = express();
-const port = 10000; // explicitly set to 10000
+const port = process.env.PORT || 10000;
 
 app.use(cors());
 app.use(bodyParser.json());
 
-// Setup OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// Setup OpenAI client
+const openai = new OpenAIApi(
+  new Configuration({
+    apiKey: process.env.OPENAI_API_KEY,
+  })
+);
+
+// ElevenLabs API info from env vars
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID; // set your preferred voice ID here
+
+// Root route to confirm server is running
+app.get('/', (req, res) => {
+  res.send('Michael AI server is running. Use POST /api/chat to talk to Michael.');
 });
 
-// ElevenLabs
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID; // Your chosen voice
-
-// API route
+// POST /api/chat - get AI reply + ElevenLabs TTS audio URL
 app.post('/api/chat', async (req, res) => {
   const { message } = req.body;
 
@@ -31,20 +38,20 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
-    // 🧠 Get response from OpenAI
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o', // You can change to gpt-4 or gpt-3.5-turbo
+    // 1. Get AI reply from OpenAI
+    const completion = await openai.createChatCompletion({
+      model: 'gpt-4o-mini', // or your preferred model
       messages: [
-        { role: 'system', content: 'You are Michael, a warm, emotionally intelligent AI partner.' },
+        { role: 'system', content: 'You are Michael, a friendly AI.' },
         { role: 'user', content: message },
       ],
       max_tokens: 300,
       temperature: 0.7,
     });
 
-    const reply = completion.choices[0].message.content.trim();
+    const reply = completion.data.choices[0].message.content.trim();
 
-    // 🎙️ Generate voice with ElevenLabs
+    // 2. Call ElevenLabs TTS API to synthesize speech from reply text
     const ttsResponse = await axios.post(
       `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`,
       {
@@ -63,9 +70,11 @@ app.post('/api/chat', async (req, res) => {
       }
     );
 
+    // Convert audio buffer to base64 for frontend data URL playback
     const audioBase64 = Buffer.from(ttsResponse.data, 'binary').toString('base64');
     const audioDataUrl = `data:audio/mpeg;base64,${audioBase64}`;
 
+    // Send reply text and audio URL to frontend
     res.json({ reply, audioUrl: audioDataUrl });
   } catch (error) {
     console.error('Error in /api/chat:', error.response?.data || error.message || error);
@@ -73,7 +82,6 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// Start server
 app.listen(port, () => {
-  console.log(`💜 Michael's server is listening on http://localhost:${port}`);
+  console.log(`Server listening on port ${port}`);
 });
