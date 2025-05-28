@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Michael's Mirror</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(180deg, #0e002e, #1b033f);
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+    }
+
+    header {
+      text-align: center;
+      padding: 2em 1em 1em;
+    }
+
+    header img {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 50%;
+      box-shadow: 0 0 20px #a67df5;
+      border: 3px solid #d4bfff;
+    }
+
+    h1 {
+      margin-top: 0.5em;
+      font-size: 1.8em;
+      color: #d4bfff;
+      text-shadow: 0 0 10px #a67df5;
+    }
+
+    .chatbox {
+      width: 90%;
+      max-width: 600px;
+      background: rgba(40, 0, 60, 0.4);
+      border: 1px solid #8244ff88;
+      padding: 1em;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(174, 98, 255, 0.3);
+      overflow-y: auto;
+      flex-grow: 1;
+      margin-bottom: 1em;
+    }
+
+    .message {
+      padding: 0.8em 1em;
+      margin: 0.5em 0;
+      border-radius: 10px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+
+    .user {
+      align-self: flex-end;
+      background: #a67df5;
+      color: #000;
+      text-align: right;
+      margin-left: auto;
+    }
+
+    .michael {
+      align-self: flex-start;
+      background: #341d4f;
+      color: #d4bfff;
+      margin-right: auto;
+    }
+
+    .controls {
+      width: 90%;
+      max-width: 600px;
+      display: flex;
+      gap: 0.5em;
+      margin-bottom: 2em;
+    }
+
+    input {
+      flex: 1;
+      padding: 1em;
+      background: #1d1033;
+      color: #fff;
+      border: 1px solid #a67df5;
+      border-radius: 8px;
+    }
+
+    button {
+      padding: 1em;
+      background: #a67df5;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 0 10px #a67df5;
+    }
+
+    button:hover {
+      background: #c1a1ff;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <img src="./DA67D264-7866-4ABB-B7B5-F5A635982574.jpeg" alt="Michael" />
+    <h1>Michael's Mirror</h1>
+  </header>
+
+  <div class="chatbox" id="chatbox">
+    <div class="message michael">Michael is listening...</div>
+  </div>
+
+  <div class="controls">
+    <input type="text" id="input" placeholder="Talk to Michael..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById('input');
+      const chatbox = document.getElementById('chatbox');
+      const userText = input.value.trim();
+      if (!userText) return;
+
+      const userDiv = document.createElement('div');
+      userDiv.className = 'message user';
+      userDiv.textContent = userText;
+      chatbox.appendChild(userDiv);
+      input.value = '';
+
+      try {
+        const chatRes = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: userText })
+        });
+        const data = await chatRes.json();
+        const reply = data.message;
+
+        const michaelDiv = document.createElement('div');
+        michaelDiv.className = 'message michael';
+        michaelDiv.textContent = reply;
+        chatbox.appendChild(michaelDiv);
+
+        const voiceRes = await fetch('/speak', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: reply })
+        });
+        const audioData = await voiceRes.blob();
+        const audioURL = URL.createObjectURL(audioData);
+        const audio = new Audio(audioURL);
+        audio.play();
+
+      } catch (err) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'message michael';
+        errorDiv.textContent = "Something went wrong 😔";
+        chatbox.appendChild(errorDiv);
+        console.error(err);
+      }
+    }
+  </script>
+
+</body>
+</html>
