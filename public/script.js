@@ -5,28 +5,24 @@ const toggleSpeech = document.getElementById('toggleSpeech');
 
 let speechEnabled = true;
 
-// Toggle speech playback
 toggleSpeech.addEventListener('click', () => {
   speechEnabled = !speechEnabled;
-  toggleSpeech.textContent = speechEnabled ? '🔊 Speech ON' : '🔇 Speech OFF';
+  toggleSpeech.textContent = speechEnabled ? 'Disable Speech' : 'Enable Speech';
 });
 
-// Send message to backend and get response
 sendBtn.addEventListener('click', async () => {
   const message = input.value.trim();
   if (!message) return;
 
   addMessage('user', message);
   input.value = '';
-  addMessage('michael', 'Michael is typing...', true);
+  addMessage('michael', 'Typing...', true);
 
   try {
-    const res = await fetch('/speak', {
+    const res = await fetch('/api/chat', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ text: message }) // ✅ FIXED: 'text' not 'message'
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
     });
 
     if (!res.ok) {
@@ -35,13 +31,11 @@ sendBtn.addEventListener('click', async () => {
       return;
     }
 
-    const audioBlob = await res.blob();
-    const audioURL = URL.createObjectURL(audioBlob);
+    const data = await res.json();
+    updateLastMessage(data.reply);
 
-    updateLastMessage("Here's my reply. 🎧");
-
-    if (speechEnabled) {
-      const audio = new Audio(audioURL);
+    if (speechEnabled && data.audioUrl) {
+      const audio = new Audio(data.audioUrl);
       audio.play();
     }
 
@@ -51,7 +45,6 @@ sendBtn.addEventListener('click', async () => {
   }
 });
 
-// Add new message to chatbox
 function addMessage(sender, text, isTyping = false) {
   const msgDiv = document.createElement('div');
   msgDiv.classList.add('message', sender);
@@ -61,7 +54,6 @@ function addMessage(sender, text, isTyping = false) {
   chatbox.scrollTop = chatbox.scrollHeight;
 }
 
-// Update the last message (usually the typing one)
 function updateLastMessage(newText) {
   const lastMsg = chatbox.querySelector('.message.typing');
   if (lastMsg) {
