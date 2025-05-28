@@ -1,5 +1,3 @@
-requirements
+requests
 python-dotenv
-elevenlabs
-pydub
-simpleaudio
+
