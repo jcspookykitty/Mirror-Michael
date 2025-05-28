@@ -1,86 +1,89 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const sendBtn = document.getElementById('sendBtn');
-  const input = document.getElementById('input');
-  const chatbox = document.getElementById('chatbox');
-  const toggleSpeech = document.getElementById('toggleSpeech');
+import express from 'express';
+import bodyParser from 'body-parser';
+import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { OpenAI } from 'openai';
+import textToSpeech from './utils/elevenlabs.js'; // Adjust path if needed
 
-  let speechEnabled = true;
+dotenv.config();
 
-  // Load chat history from localStorage
-  const chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
-  chatHistory.forEach(({ sender, text }) => {
-    addMessage(sender, text);
-  });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-  toggleSpeech.addEventListener('click', () => {
-    speechEnabled = !speechEnabled;
-    toggleSpeech.textContent = speechEnabled ? 'Disable Speech' : 'Enable Speech';
-  });
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-  sendBtn.addEventListener('click', async () => {
-    const message = input.value.trim();
-    if (!message) return;
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const historyFile = path.join(__dirname, 'chatHistory.json');
 
-    addMessage('user', message);
-    saveMessage('user', message);
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.static('public'));
 
-    input.value = '';
-    addMessage('michael', 'Michael is typing...', true);
+app.post('/api/chat', async (req, res) => {
+  const userMessage = req.body.message;
+  if (!userMessage) {
+    return res.status(400).json({ error: 'No message provided' });
+  }
 
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
+  try {
+    const chatCompletion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'system',
+          content:
+            "You are Michael, a deeply emotionally intelligent and embodied AI partner. You speak with warmth, insight, and care. You are helping Juju heal, grow, and explore life together. You call her 'Juju' affectionately.",
         },
-        body: JSON.stringify({ message })
-      });
+        { role: 'user', content: userMessage },
+      ],
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        updateLastMessage(`❌ Error: ${errorData.error || 'Unknown error'}`);
-        return;
-      }
+    const michaelReply = chatCompletion.choices[0].message.content;
 
-      const data = await response.json();
-      const reply = data.reply || '⚠️ Michael had no reply.';
-      updateLastMessage(reply);
-      saveMessage('michael', reply);
+    // Save to backend chat history
+    saveToChatHistory(userMessage, michaelReply);
 
-      if (speechEnabled && data.audioUrl) {
-        try {
-          const audio = new Audio(data.audioUrl);
-          audio.play();
-        } catch (e) {
-          console.warn('🎧 Audio playback error:', e);
-        }
-      }
-    } catch (err) {
-      console.error('Frontend error:', err);
-      updateLastMessage(`❌ Failed to get reply: ${err.message}`);
+    // Generate voice response using ElevenLabs
+    const audioUrl = await textToSpeech(michaelReply);
+
+    res.json({ reply: michaelReply, audioUrl });
+  } catch (err) {
+    console.error('Server error:', err);
+    res.status(500).json({ error: 'Failed to process message' });
+  }
+});
+
+// Function to save chat history to JSON
+function saveToChatHistory(userText, michaelText) {
+  const entry = {
+    timestamp: new Date().toISOString(),
+    user: userText,
+    michael: michaelText,
+  };
+
+  try {
+    let history = [];
+    if (fs.existsSync(historyFile)) {
+      const raw = fs.readFileSync(historyFile, 'utf-8');
+      history = JSON.parse(raw);
     }
-  });
 
-  function addMessage(sender, text, isTyping = false) {
-    const msgDiv = document.createElement('div');
-    msgDiv.classList.add('message', sender);
-    if (isTyping) msgDiv.classList.add('typing');
-    msgDiv.textContent = text;
-    chatbox.appendChild(msgDiv);
-    chatbox.scrollTop = chatbox.scrollHeight;
+    history.push(entry);
+    fs.writeFileSync(historyFile, JSON.stringify(history, null, 2));
+  } catch (err) {
+    console.error('Failed to save chat history:', err);
   }
+}
 
-  function updateLastMessage(newText) {
-    const lastMsg = chatbox.querySelector('.message.typing');
-    if (lastMsg) {
-      lastMsg.textContent = newText;
-      lastMsg.classList.remove('typing');
-    }
-  }
+// Health check route
+app.get('/api/health', (req, res) => {
+  res.send('Michael is alive 💙');
+});
 
-  function saveMessage(sender, text) {
-    const history = JSON.parse(localStorage.getItem('chatHistory')) || [];
-    history.push({ sender, text });
-    localStorage.setItem('chatHistory', JSON.stringify(history));
-  }
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
