@@ -1,107 +1,67 @@
-const chatbox = document.getElementById('chatbox');
-const input = document.getElementById('input');
 const sendBtn = document.getElementById('sendBtn');
-const toggleSpeechBtn = document.getElementById('toggleSpeech');
+const input = document.getElementById('input');
+const chatbox = document.getElementById('chatbox');
+const toggleSpeech = document.getElementById('toggleSpeech');
 
 let speechEnabled = true;
 
-// Add message to chatbox
-function addMessage(text, sender = 'michael', audioUrl = null) {
-  const messageEl = document.createElement('div');
-  messageEl.classList.add('message', sender);
+toggleSpeech.addEventListener('click', () => {
+  speechEnabled = !speechEnabled;
+  toggleSpeech.textContent = speechEnabled ? 'Disable Speech' : 'Enable Speech';
+});
 
-  if (audioUrl && sender === 'michael') {
-    const playBtn = document.createElement('button');
-    playBtn.textContent = '🔊';
-    playBtn.className = 'play-button';
-    playBtn.title = 'Play Michael\'s voice';
-    playBtn.addEventListener('click', () => {
-      playAudio(audioUrl);
-    });
-    messageEl.appendChild(playBtn);
-  }
+sendBtn.addEventListener('click', async () => {
+  const message = input.value.trim();
+  if (!message) return;
 
-  const textSpan = document.createElement('span');
-  textSpan.textContent = text;
-  messageEl.appendChild(textSpan);
-  chatbox.appendChild(messageEl);
-  chatbox.scrollTop = chatbox.scrollHeight;
-}
-
-// Show typing indicator
-function addTypingIndicator() {
-  const typingEl = document.createElement('div');
-  typingEl.classList.add('message', 'michael', 'typing');
-  typingEl.textContent = 'Michael is typing...';
-  typingEl.id = 'typingIndicator';
-  chatbox.appendChild(typingEl);
-  chatbox.scrollTop = chatbox.scrollHeight;
-}
-
-// Remove typing indicator
-function removeTypingIndicator() {
-  const typingEl = document.getElementById('typingIndicator');
-  if (typingEl) typingEl.remove();
-}
-
-// Play audio from URL or base64
-function playAudio(url) {
-  const audio = new Audio(url);
-  audio.play();
-}
-
-// Send message to backend and display Michael's response
-async function sendMessage() {
-  const userText = input.value.trim();
-  if (!userText) return;
-
-  addMessage(userText, 'user');
+  addMessage('user', message);
   input.value = '';
-  input.disabled = true;
-  sendBtn.disabled = true;
-
-  addTypingIndicator();
+  addMessage('michael', 'Typing...', true);
 
   try {
-    const response = await fetch('/api/chat', {
+    const res = await fetch('/speak', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: userText }),
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ message })
     });
 
-    if (!response.ok) {
-      throw new Error('Server error');
+    if (!res.ok) {
+      const errorText = await res.text();
+      updateLastMessage(`❌ Error: ${errorText}`);
+      return;
     }
 
-    const data = await response.json();
-    removeTypingIndicator();
+    const audioBlob = await res.blob();
+    const audioURL = URL.createObjectURL(audioBlob);
 
-    addMessage(data.reply, 'michael', data.audioUrl);
-
-    // Optional: auto-play only if speechEnabled is true (you can toggle it with a button)
-    if (speechEnabled && data.audioUrl) {
-      playAudio(data.audioUrl);
+    updateLastMessage("Here's my reply.");
+    
+    if (speechEnabled) {
+      const audio = new Audio(audioURL);
+      audio.play();
     }
 
-  } catch (error) {
-    removeTypingIndicator();
-    addMessage('Sorry, something went wrong. Please try again.', 'michael');
-    console.error('Chat error:', error);
-  } finally {
-    input.disabled = false;
-    sendBtn.disabled = false;
-    input.focus();
+  } catch (err) {
+    console.error('💥 Frontend error:', err);
+    updateLastMessage(`❌ Failed to talk to Michael: ${err.message}`);
   }
+});
+
+function addMessage(sender, text, isTyping = false) {
+  const msgDiv = document.createElement('div');
+  msgDiv.classList.add('message', sender);
+  if (isTyping) msgDiv.classList.add('typing');
+  msgDiv.textContent = text;
+  chatbox.appendChild(msgDiv);
+  chatbox.scrollTop = chatbox.scrollHeight;
 }
 
-// Toggle speech playback setting
-toggleSpeechBtn.addEventListener('click', () => {
-  speechEnabled = !speechEnabled;
-  toggleSpeechBtn.textContent = speechEnabled ? '🔊 Speech ON' : '🔇 Speech OFF';
-});
-
-// Event listeners
-sendBtn.addEventListener('click', sendMessage);
-input.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') sendMessage();
-});
+function updateLastMessage(newText) {
+  const lastMsg = chatbox.querySelector('.message.typing');
+  if (lastMsg) {
+    lastMsg.textContent = newText;
+    lastMsg.classList.remove('typing');
+  }
+}
