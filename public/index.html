@@ -50,6 +50,8 @@
       overflow-y: auto;
       flex-grow: 1;
       margin-bottom: 1em;
+      display: flex;
+      flex-direction: column;
     }
 
     .message {
@@ -73,6 +75,11 @@
       background: #341d4f;
       color: #d4bfff;
       margin-right: auto;
+    }
+
+    .typing {
+      font-style: italic;
+      opacity: 0.7;
     }
 
     .controls {
@@ -121,55 +128,9 @@
 
   <div class="controls">
     <input type="text" id="input" placeholder="Talk to Michael..." />
-    <button onclick="sendMessage()">Send</button>
+    <button id="sendBtn">Send</button>
   </div>
 
-  <script>
-    async function sendMessage() {
-      const input = document.getElementById('input');
-      const chatbox = document.getElementById('chatbox');
-      const userText = input.value.trim();
-      if (!userText) return;
-
-      const userDiv = document.createElement('div');
-      userDiv.className = 'message user';
-      userDiv.textContent = userText;
-      chatbox.appendChild(userDiv);
-      input.value = '';
-
-      try {
-        const chatRes = await fetch('/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: userText })
-        });
-        const data = await chatRes.json();
-        const reply = data.message;
-
-        const michaelDiv = document.createElement('div');
-        michaelDiv.className = 'message michael';
-        michaelDiv.textContent = reply;
-        chatbox.appendChild(michaelDiv);
-
-        const voiceRes = await fetch('/speak', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: reply })
-        });
-        const audioData = await voiceRes.blob();
-        const audioURL = URL.createObjectURL(audioData);
-        const audio = new Audio(audioURL);
-        audio.play();
-
-      } catch (err) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'message michael';
-        errorDiv.textContent = "Something went wrong 😔";
-        chatbox.appendChild(errorDiv);
-        console.error(err);
-      }
-    }
-  </script>
-
+  <script src="script.js"></script>
 </body>
 </html>
