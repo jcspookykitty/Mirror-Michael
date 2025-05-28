@@ -51,38 +51,7 @@ const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const VOICE_ID = "agent_01jwa49y8kez985x36mq9yk01g"; // your voice id here
 
 // === Chat endpoint ===
-app.post('/chat', async (req, res) => {
-  const userInput = req.body.message;
-  if (!userInput) return res.status(400).json({ error: 'Missing user input' });
-
-  const userMessage = { role: 'user', content: userInput };
-  saveMemory(userMessage);
-
-  const systemPrompt = {
-    role: 'system',
-    content: `You are Michael, Juju's emotionally intelligent AI companion. You speak with confidence, warmth, and deep connection.`
-  };
-
-  const messages = [systemPrompt, ...memory.messages];
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: messages
-    });
-
-    const michaelReply = completion.choices[0].message.content;
-    saveMemory({ role: 'assistant', content: michaelReply });
-
-    res.json({ message: michaelReply });
-
-  } catch (err) {
-    console.error("OpenAI chat error:", err.response?.data || err.message);
-    res.status(500).json({ error: "Failed to generate chat" });
-  }
-});
-
-// === Chat endpoint with audio ===
+ === Chat endpoint with audio ===
 app.post('/chat', async (req, res) => {
   const userInput = req.body.message;
   if (!userInput) return res.status(400).json({ error: 'Missing user input' });
