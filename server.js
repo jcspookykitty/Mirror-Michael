@@ -1,83 +1,46 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const input = document.getElementById('input');
-  const chatbox = document.getElementById('chatbox');
-  const sendBtn = document.getElementById('sendBtn');
-  const toggleBtn = document.getElementById('toggleSpeech');
+// server.js
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import OpenAI from 'openai'; // correct for v4
 
-  let isSpeechEnabled = true;
+dotenv.config();
 
-  toggleBtn.addEventListener('click', () => {
-    isSpeechEnabled = !isSpeechEnabled;
-    toggleBtn.textContent = isSpeechEnabled ? '🔊 Michael Speaks' : '🔇 Michael Silent';
-  });
+const app = express();
+const port = process.env.PORT || 3000;
 
-  sendBtn.addEventListener('click', sendMessage);
-  input.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') sendMessage();
-  });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-  async function sendMessage() {
-    const userText = input.value.trim();
-    if (!userText) return;
+app.use(cors());
+app.use(bodyParser.json());
 
-    // Add user message
-    const userDiv = document.createElement('div');
-    userDiv.className = 'message user';
-    userDiv.textContent = userText;
-    chatbox.appendChild(userDiv);
-    chatbox.scrollTop = chatbox.scrollHeight;
-    input.value = '';
+// Chat endpoint
+app.post('/chat', async (req, res) => {
+  const userMessage = req.body.message;
 
-    // Typing indicator
-    const typingDiv = document.createElement('div');
-    typingDiv.className = 'message michael';
-    typingDiv.textContent = 'Michael is typing...';
-    typingDiv.id = 'typing';
-    chatbox.appendChild(typingDiv);
-    chatbox.scrollTop = chatbox.scrollHeight;
+  try {
+    const completion = await openai.chat.completions.create({
+      messages: [{ role: 'user', content: userMessage }],
+      model: 'gpt-4',
+    });
 
-    try {
-      const chatRes = await fetch('/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userText }),
-      });
-
-      const chatData = await chatRes.json();
-      const reply = chatData.message;
-
-      // Remove typing indicator
-      typingDiv.remove();
-
-      // Add Michael's reply
-      const michaelDiv = document.createElement('div');
-      michaelDiv.className = 'message michael';
-      michaelDiv.textContent = reply;
-      chatbox.appendChild(michaelDiv);
-      chatbox.scrollTop = chatbox.scrollHeight;
-
-      if (isSpeechEnabled) {
-        const voiceRes = await fetch('/speak', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: reply }),
-        });
-
-        if (!voiceRes.ok) throw new Error('Voice synthesis failed');
-        const audioBlob = await voiceRes.blob();
-        const audioURL = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioURL);
-        audio.play();
-      }
-
-    } catch (err) {
-      console.error('Error:', err);
-      typingDiv.remove();
-
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'message michael';
-      errorDiv.textContent = "Something went wrong 😔";
-      chatbox.appendChild(errorDiv);
-    }
+    const aiMessage = completion.choices[0].message.content;
+    res.json({ message: aiMessage });
+  } catch (error) {
+    console.error('OpenAI error:', error);
+    res.status(500).json({ error: 'Failed to get response from OpenAI' });
   }
+});
+
+// Speech endpoint placeholder
+app.post('/speak', async (req, res) => {
+  // Replace with ElevenLabs integration or mock it for now
+  res.status(501).send('Speech synthesis not implemented');
+});
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
