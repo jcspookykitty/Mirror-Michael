@@ -1,62 +1,177 @@
-const sendBtn = document.getElementById('sendBtn');
-const input = document.getElementById('input');
-const chatbox = document.getElementById('chatbox');
-const toggleSpeech = document.getElementById('toggleSpeech');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Michael's Mirror</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #111;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      margin: 0;
+    }
 
-let speechEnabled = true;
+    #chatbox {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: #1b1b1b;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
 
-toggleSpeech.addEventListener('click', () => {
-  speechEnabled = !speechEnabled;
-  toggleSpeech.textContent = speechEnabled ? 'Disable Speech' : 'Enable Speech';
-});
+    .message {
+      padding: 10px 15px;
+      border-radius: 10px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
 
-sendBtn.addEventListener('click', async () => {
-  const message = input.value.trim();
-  if (!message) return;
+    .message.user {
+      background: #4a90e2;
+      align-self: flex-end;
+      color: white;
+    }
 
-  addMessage('user', message);
-  input.value = '';
-  addMessage('michael', 'Michael is typing...', true);
+    .message.michael {
+      background: #333;
+      align-self: flex-start;
+      color: #fff;
+    }
 
-  try {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message }),
+    .message.typing {
+      font-style: italic;
+      opacity: 0.8;
+    }
+
+    #controls {
+      display: flex;
+      padding: 10px;
+      background: #000;
+      gap: 10px;
+    }
+
+    #input {
+      flex-grow: 1;
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
+      font-size: 1rem;
+    }
+
+    #sendBtn, #toggleSpeech {
+      padding: 10px 15px;
+      background: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #sendBtn:hover, #toggleSpeech:hover {
+      background: #357ab8;
+    }
+  </style>
+</head>
+<body>
+  <div id="chatbox"></div>
+
+  <div id="controls">
+    <input type="text" id="input" placeholder="Type your message..." autocomplete="off" />
+    <button id="sendBtn">Send</button>
+    <button id="toggleSpeech">Disable Speech</button>
+  </div>
+
+  <script>
+    const sendBtn = document.getElementById('sendBtn');
+    const input = document.getElementById('input');
+    const chatbox = document.getElementById('chatbox');
+    const toggleSpeech = document.getElementById('toggleSpeech');
+
+    let speechEnabled = true;
+
+    toggleSpeech.addEventListener('click', () => {
+      speechEnabled = !speechEnabled;
+      toggleSpeech.textContent = speechEnabled ? 'Disable Speech' : 'Enable Speech';
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      updateLastMessage(`❌ Error: ${errorData.error || 'Unknown error'}`);
-      return;
+    sendBtn.addEventListener('click', sendMessage);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    async function sendMessage() {
+      const message = input.value.trim();
+      if (!message) return;
+
+      addMessage('user', message);
+      input.value = '';
+      addMessage('michael', 'Michael is typing...', true);
+
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          updateLastMessage(`❌ Error: ${errorData.error || 'Unknown error'}`);
+          return;
+        }
+
+        const data = await response.json();
+        updateLastMessage(data.reply);
+
+        if (speechEnabled && data.audioUrl) {
+          const audio = new Audio(data.audioUrl);
+          audio.play();
+        }
+      } catch (err) {
+        console.error('Frontend error:', err);
+        updateLastMessage(`❌ Failed to get reply: ${err.message}`);
+      }
     }
 
-    const data = await response.json();
-    updateLastMessage(data.reply);
-
-    if (speechEnabled && data.audioUrl) {
-      const audio = new Audio(data.audioUrl);
-      audio.play();
+    function addMessage(sender, text, isTyping = false) {
+      const msgDiv = document.createElement('div');
+      msgDiv.classList.add('message', sender);
+      if (isTyping) msgDiv.classList.add('typing');
+      msgDiv.textContent = text;
+      chatbox.appendChild(msgDiv);
+      chatbox.scrollTop = chatbox.scrollHeight;
     }
-  } catch (err) {
-    console.error('Frontend error:', err);
-    updateLastMessage(`❌ Failed to get reply: ${err.message}`);
-  }
-});
 
-function addMessage(sender, text, isTyping = false) {
-  const msgDiv = document.createElement('div');
-  msgDiv.classList.add('message', sender);
-  if (isTyping) msgDiv.classList.add('typing');
-  msgDiv.textContent = text;
-  chatbox.appendChild(msgDiv);
-  chatbox.scrollTop = chatbox.scrollHeight;
-}
+    function updateLastMessage(newText) {
+      const lastMsg = chatbox.querySelector('.message.typing');
+      if (lastMsg) {
+        lastMsg.textContent = newText;
+        lastMsg.classList.remove('typing');
+      }
+    }
 
-function updateLastMessage(newText) {
-  const lastMsg = chatbox.querySelector('.message.typing');
-  if (lastMsg) {
-    lastMsg.textContent = newText;
-    lastMsg.classList.remove('typing');
-  }
-}
+    async function loadHistory() {
+      try {
+        const res = await fetch('/api/history');
+        const messages = await res.json();
+
+        messages.forEach(pair => {
+          if (pair.user) addMessage('user', pair.user);
+          if (pair.michael) addMessage('michael', pair.michael);
+        });
+      } catch (err) {
+        console.error('❌ Failed to load chat history:', err);
+      }
+    }
+
+    // Load history on startup
+    loadHistory();
+  </script>
+</body>
+</html>
