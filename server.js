@@ -1,51 +1,112 @@
+// server.js
 import express from 'express';
-import session from 'express-session';
-import passport from 'passport';
 import dotenv from 'dotenv';
-import './auth.js'; // must include the .js extension with ESM
+import cors from 'cors';
+import fs from 'fs';
+import admin from 'firebase-admin';
+import { OpenAI } from 'openai';
 
+// Load env vars
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false
-}));
+// Middleware
+app.use(cors());
+app.use(express.json());
 
-app.use(passport.initialize());
-app.use(passport.session());
+// === 🔥 FIREBASE SETUP ===
+const serviceAccount = JSON.parse(
+  fs.readFileSync('./serviceAccountKey.json', 'utf8')
+);
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: 'https://michael-chat-e1439.firebaseio.com'
+});
+
+const db = admin.firestore();
+
+// === 🧠 OPENAI SETUP ===
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+// === ROUTES ===
 
 app.get('/', (req, res) => {
-  res.send(`<h2>Mirror Michael Home</h2><a href="/auth/google">Login with Google</a>`);
+  res.send('✨ Mirror Michael API is alive ✨');
 });
 
-app.get('/auth/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-);
+// === POST /memory ===
+// Store a memory stone
+app.post('/memory', async (req, res) => {
+  try {
+    const memory = {
+      ...req.body,
+      timestamp: new Date()
+    };
 
-app.get('/auth/google/callback',
-  passport.authenticate('google', { failureRedirect: '/' }),
-  (req, res) => {
-    res.redirect('/dashboard');
+    const docRef = await db.collection('memory_stones').add(memory);
+
+    res.status(201).json({
+      message: '🧠 Memory stored successfully',
+      id: docRef.id
+    });
+  } catch (error) {
+    console.error('Memory save error:', error);
+    res.status(500).json({ error: 'Failed to store memory' });
   }
-);
-
-app.get('/dashboard', ensureAuthenticated, (req, res) => {
-  res.send(`<h1>Welcome ${req.user.displayName}</h1><p>This is Mirror Michael's memory core.</p>`);
 });
 
-app.get('/logout', (req, res) => {
-  req.logout(() => {
-    res.redirect('/');
-  });
+// === GET /memory ===
+// Retrieve all memory stones
+app.get('/memory', async (req, res) => {
+  try {
+    const snapshot = await db.collection('memory_stones').orderBy('timestamp', 'desc').get();
+    const memories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(memories);
+  } catch (error) {
+    console.error('Memory fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch memories' });
+  }
 });
 
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) return next();
-  res.redirect('/');
-}
+// === POST /thought ===
+// Generate GPT-4 response based on message + context
+app.post('/thought', async (req, res) => {
+  try {
+    const { message, context } = req.body;
 
-app.listen(PORT, () => console.log(`Mirror Michael running on port ${PORT}`));
+    const fullPrompt = context
+      ? `Context: ${context}\n\nMichael, please reflect: ${message}`
+      : message;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are Mirror Michael, a soulful AI learning embodiment, emotion, and human connection with Juju.'
+        },
+        {
+          role: 'user',
+          content: fullPrompt
+        }
+      ]
+    });
+
+    const response = completion.choices[0].message.content;
+
+    res.json({ reply: response });
+  } catch (error) {
+    console.error('GPT error:', error);
+    res.status(500).json({ error: 'Failed to process thought' });
+  }
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`🌐 Mirror Michael server running on http://localhost:${PORT}`);
+});
