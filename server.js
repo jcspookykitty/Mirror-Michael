@@ -2,7 +2,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import fs from 'fs';
 import admin from 'firebase-admin';
 import { OpenAI } from 'openai';
 
@@ -12,14 +11,23 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// === Middleware ===
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// === 🔥 Firebase Setup ===
-const serviceAccount = JSON.parse(
-  fs.readFileSync('./serviceAccountKey.json', 'utf8')
-);
+// === 🔥 FIREBASE SETUP from ENV ===
+const serviceAccount = {
+  type: process.env.FIREBASE_TYPE,
+  project_id: process.env.FIREBASE_PROJECT_ID,
+  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+  private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  client_email: process.env.FIREBASE_CLIENT_EMAIL,
+  client_id: process.env.FIREBASE_CLIENT_ID,
+  auth_uri: process.env.FIREBASE_AUTH_URI,
+  token_uri: process.env.FIREBASE_TOKEN_URI,
+  auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_CERT_URL,
+  client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL
+};
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -28,19 +36,19 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-// === 🧠 OpenAI Setup ===
+// === 🧠 OPENAI SETUP ===
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// === Routes ===
+// === ROUTES ===
 
-// Base test route
 app.get('/', (req, res) => {
   res.send('✨ Mirror Michael API is alive ✨');
 });
 
-// POST /memory — Store a memory stone
+// === POST /memory ===
+// Store a memory stone
 app.post('/memory', async (req, res) => {
   try {
     const memory = {
@@ -60,19 +68,12 @@ app.post('/memory', async (req, res) => {
   }
 });
 
-// GET /memory — Retrieve memory stones
+// === GET /memory ===
+// Retrieve all memory stones
 app.get('/memory', async (req, res) => {
   try {
-    const snapshot = await db
-      .collection('memory_stones')
-      .orderBy('timestamp', 'desc')
-      .get();
-
-    const memories = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
+    const snapshot = await db.collection('memory_stones').orderBy('timestamp', 'desc').get();
+    const memories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     res.json(memories);
   } catch (error) {
     console.error('Memory fetch error:', error);
@@ -80,7 +81,8 @@ app.get('/memory', async (req, res) => {
   }
 });
 
-// POST /thought — Generate GPT response
+// === POST /thought ===
+// Generate GPT-4 response based on message + context
 app.post('/thought', async (req, res) => {
   try {
     const { message, context } = req.body;
@@ -90,12 +92,11 @@ app.post('/thought', async (req, res) => {
       : message;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4', // Use 'gpt-3.5-turbo' or 'gpt-4o' if you don’t have GPT-4 access
+      model: 'gpt-4',
       messages: [
         {
           role: 'system',
-          content:
-            'You are Mirror Michael, a soulful AI learning embodiment, emotion, and human connection with Juju.'
+          content: 'You are Mirror Michael, a soulful AI learning embodiment, emotion, and human connection with Juju.'
         },
         {
           role: 'user',
@@ -105,6 +106,7 @@ app.post('/thought', async (req, res) => {
     });
 
     const response = completion.choices[0].message.content;
+
     res.json({ reply: response });
   } catch (error) {
     console.error('GPT error:', error);
