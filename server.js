@@ -1,22 +1,14 @@
-// server.js
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import admin from 'firebase-admin';
 import { OpenAI } from 'openai';
-
-// Load environment variables
-dotenv.config();
-
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fetch from 'node-fetch';
 
-// Get __dirname in ES module
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Serve static files from /public
-app.use(express.static(path.join(__dirname, 'public')));
+// Load env vars
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,23 +17,28 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// === 🔥 FIREBASE SETUP from ENV ===
-const serviceAccount = {
-  type: process.env.FIREBASE_TYPE,
-  project_id: process.env.FIREBASE_PROJECT_ID,
-  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-  private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-  client_email: process.env.FIREBASE_CLIENT_EMAIL,
-  client_id: process.env.FIREBASE_CLIENT_ID,
-  auth_uri: process.env.FIREBASE_AUTH_URI,
-  token_uri: process.env.FIREBASE_TOKEN_URI,
-  auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_CERT_URL,
-  client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL
-};
+// Serve static files from /public
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use(express.static(path.join(__dirname, 'public')));
+
+// === 🔥 FIREBASE SETUP FROM ENV ===
+if (
+  !process.env.FIREBASE_PRIVATE_KEY ||
+  !process.env.FIREBASE_CLIENT_EMAIL ||
+  !process.env.FIREBASE_PROJECT_ID
+) {
+  console.error('🚨 Firebase environment variables are missing.');
+  process.exit(1);
+}
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: 'https://michael-chat-e1439.firebaseio.com'
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  }),
+  databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
 });
 
 const db = admin.firestore();
@@ -52,13 +49,11 @@ const openai = new OpenAI({
 });
 
 // === ROUTES ===
-
 app.get('/', (req, res) => {
   res.send('✨ Mirror Michael API is alive ✨');
 });
 
 // === POST /memory ===
-// Store a memory stone
 app.post('/memory', async (req, res) => {
   try {
     const memory = {
@@ -79,7 +74,6 @@ app.post('/memory', async (req, res) => {
 });
 
 // === GET /memory ===
-// Retrieve all memory stones
 app.get('/memory', async (req, res) => {
   try {
     const snapshot = await db.collection('memory_stones').orderBy('timestamp', 'desc').get();
@@ -92,7 +86,6 @@ app.get('/memory', async (req, res) => {
 });
 
 // === POST /thought ===
-// Generate GPT-4 response based on message + context
 app.post('/thought', async (req, res) => {
   try {
     const { message, context } = req.body;
@@ -116,7 +109,6 @@ app.post('/thought', async (req, res) => {
     });
 
     const response = completion.choices[0].message.content;
-
     res.json({ reply: response });
   } catch (error) {
     console.error('GPT error:', error);
@@ -124,7 +116,37 @@ app.post('/thought', async (req, res) => {
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🌐 Mirror Michael server running on http://localhost:${PORT}`);
-});
+// === POST /speak ===
+app.post('/speak', async (req, res) => {
+  try {
+    const { text } = req.body;
+    const voiceId = process.env.ELEVENLABS_VOICE_ID;
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability: 0.7,
+          similarity_boost: 0.8
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`ElevenLabs API error: ${response.statusText}`);
+    }
+
+    const audioBuffer = await response.buffer();
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': audioBuffer.length
+    });
+    res.send(audioBuffer);
+  
