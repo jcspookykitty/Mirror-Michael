@@ -1,73 +1,55 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { readFile } from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import admin from 'firebase-admin';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
-// Setup for __dirname in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+dotenv.config(); // Load .env variables
 
-dotenv.config();
+// Parse the Firebase service account from environment variable
+const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// 🔐 Load Firebase service account key
-const serviceAccountPath = path.join(__dirname, 'serviceAccountKey.json');
-const serviceAccount = JSON.parse(
-  await readFile(serviceAccountPath, 'utf8')
-);
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+// Initialize Firebase Admin
+initializeApp({
+  credential: cert(serviceAccount),
 });
 
-const db = admin.firestore();
-const chatRef = db.collection('chatHistory');
+// Get Firestore database instance
+const db = getFirestore();
 
-// Middleware
+// Setup Express app
+const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
-// Handle chat message
-app.post('/api/chat', async (req, res) => {
-  const { message } = req.body;
-  if (!message) return res.status(400).json({ error: 'Message is required' });
+// Sample route: save chat message
+app.post('/save-chat', async (req, res) => {
+  const { userId, message, timestamp } = req.body;
+
+  if (!userId || !message || !timestamp) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
 
   try {
-    const reply = `You said: "${message}". Michael is pondering...`;
-
-    // Save to Firestore
-    await chatRef.add({
-      user: message,
-      michael: reply,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    await db.collection('chats').add({
+      userId,
+      message,
+      timestamp,
     });
-
-    res.json({ reply });
-  } catch (err) {
-    console.error('Error in /chat:', err);
-    res.status(500).json({ error: 'Failed to respond' });
+    res.status(200).json({ message: 'Chat saved successfully' });
+  } catch (error) {
+    console.error('Error saving chat:', error);
+    res.status(500).json({ error: 'Failed to save chat' });
   }
 });
 
-// Load chat history
-app.get('/api/history', async (req, res) => {
-  try {
-    const snapshot = await chatRef.orderBy('timestamp').get();
-    const history = snapshot.docs.map(doc => doc.data());
-    res.json(history);
-  } catch (err) {
-    console.error('Error loading chat history:', err);
-    res.status(500).json({ error: 'Failed to load chat history' });
-  }
+// Root route
+app.get('/', (req, res) => {
+  res.send('Michael AI Server is running ✨');
 });
 
 // Start server
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Michael is awake and listening on http://localhost:${PORT}`);
+  console.log(`Server is live at http://localhost:${PORT}`);
 });
