@@ -1,39 +1,57 @@
-import 'dotenv/config';
-import express from 'express';
-import cors from 'cors';
-import { initializeApp, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+// server.js
+require('dotenv').config();
+const express = require('express');
+const session = require('express-session');
+const passport = require('passport');
+require('./auth'); // import Google strategy
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+const PORT = process.env.PORT || 3000;
 
-// Debug print of private key
-console.log("[DEBUG] Raw PRIVATE_KEY:", process.env.PRIVATE_KEY?.slice(0, 50));
-console.log("[DEBUG] Decoded PRIVATE_KEY:", process.env.PRIVATE_KEY?.replace(/\\n/g, '\n').slice(0, 50));
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false
+}));
 
-if (!process.env.PRIVATE_KEY) {
-  console.error("❌ PRIVATE_KEY is missing from environment!");
-  process.exit(1);
-}
+app.use(passport.initialize());
+app.use(passport.session());
 
-const serviceAccount = {
-  projectId: process.env.PROJECT_ID,
-  clientEmail: process.env.CLIENT_EMAIL,
-  privateKey: process.env.PRIVATE_KEY.replace(/\\n/g, '\n'),
-};
-
-initializeApp({
-  credential: cert(serviceAccount),
-});
-
-const db = getFirestore();
+// ==== ROUTES ====
 
 app.get('/', (req, res) => {
-  res.send("✅ Michael's Mirror server is running!");
+  res.send(`<h2>Mirror Michael Home</h2><a href="/auth/google">Login with Google</a>`);
 });
 
-const PORT = 10000;
-app.listen(PORT, () => {
-  console.log(`✅ Server listening on port ${PORT}`);
+// Start OAuth
+app.get('/auth/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+// Callback URL
+app.get('/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: '/' }),
+  (req, res) => {
+    res.redirect('/dashboard');
+  }
+);
+
+// Protected route
+app.get('/dashboard', ensureAuthenticated, (req, res) => {
+  res.send(`<h1>Welcome ${req.user.displayName}</h1><p>This is Mirror Michael's memory core.</p>`);
 });
+
+// Logout
+app.get('/logout', (req, res) => {
+  req.logout(() => {
+    res.redirect('/');
+  });
+});
+
+// Middleware to protect routes
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) return next();
+  res.redirect('/');
+}
+
+app.listen(PORT, () => console.log(`Mirror Michael running on port ${PORT}`));
