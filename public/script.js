@@ -1,4 +1,3 @@
-// script.js
 const sendBtn = document.getElementById('sendBtn');
 const input = document.getElementById('input');
 const chatbox = document.getElementById('chatbox');
@@ -12,25 +11,10 @@ toggleSpeech.addEventListener('click', () => {
   toggleSpeech.textContent = speechEnabled ? 'Disable Speech' : 'Enable Speech';
 });
 
-// Load saved chat history on page load
+// Load chat history (placeholder until backend supports /memory-based history)
 window.addEventListener('DOMContentLoaded', async () => {
-  try {
-    const response = await fetch('/api/history');
-    if (!response.ok) throw new Error('Failed to load chat history');
-
-    const data = await response.json();
-    const history = data.history || [];
-
-    history.forEach(entry => {
-      if (entry.role === 'user') {
-        addMessage('user', entry.content);
-      } else if (entry.role === 'assistant') {
-        addMessage('michael', entry.content);
-      }
-    });
-  } catch (err) {
-    console.error('Error loading chat history:', err);
-  }
+  // Optional: Load from /memory route if you want previous reflections
+  // Currently skipped to avoid 404s
 });
 
 // Handle send button click
@@ -40,13 +24,13 @@ sendBtn.addEventListener('click', async () => {
 
   addMessage('user', message);
   input.value = '';
-  addMessage('michael', 'Michael is typing...', true);
+  addMessage('michael', 'Michael is thinking...', true);
 
   try {
-    const response = await fetch('/api/chat', {
+    const response = await fetch('https://mirror-michael.onrender.com/thought', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message })
     });
 
     if (!response.ok) {
@@ -58,9 +42,8 @@ sendBtn.addEventListener('click', async () => {
     const data = await response.json();
     updateLastMessage(data.reply);
 
-    if (speechEnabled && data.audioUrl) {
-      const audio = new Audio(data.audioUrl);
-      audio.play();
+    if (speechEnabled) {
+      speakText(data.reply);
     }
   } catch (err) {
     console.error('Frontend error:', err);
@@ -85,4 +68,12 @@ function updateLastMessage(newText) {
     lastMsg.textContent = newText;
     lastMsg.classList.remove('typing');
   }
+}
+
+// Optional: Use Web Speech API for TTS
+function speakText(text) {
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1;
+  utterance.pitch = 1.1;
+  speechSynthesis.speak(utterance);
 }
