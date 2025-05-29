@@ -123,6 +123,10 @@ app.post('/speak', async (req, res) => {
     const voiceId = process.env.ELEVENLABS_VOICE_ID;
     const apiKey = process.env.ELEVENLABS_API_KEY;
 
+    if (!voiceId || !apiKey) {
+      throw new Error('Missing ElevenLabs API credentials.');
+    }
+
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: {
@@ -140,7 +144,9 @@ app.post('/speak', async (req, res) => {
     });
 
     if (!response.ok) {
-      throw new Error(`ElevenLabs API error: ${response.statusText}`);
+      const errorBody = await response.text();
+      console.error('🔴 ElevenLabs API error:', response.status, errorBody);
+      return res.status(500).json({ error: `ElevenLabs API error: ${response.status}` });
     }
 
     const audioBuffer = await response.buffer();
@@ -148,9 +154,10 @@ app.post('/speak', async (req, res) => {
       'Content-Type': 'audio/mpeg',
       'Content-Length': audioBuffer.length
     });
+    
     res.send(audioBuffer);
   } catch (error) {
-    console.error('Speech synthesis error:', error);
+    console.error('🛑 Speech synthesis error:', error.message);
     res.status(500).json({ error: 'Failed to synthesize speech' });
   }
 });
