@@ -1,14 +1,32 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
-// Parse the Firebase service account from environment variable
-const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-// Initialize Firebase Admin
+// Use environment variables safely
+const serviceAccount = {
+  projectId: process.env.PROJECT_ID,
+  clientEmail: process.env.CLIENT_EMAIL,
+  privateKey: process.env.PRIVATE_KEY.replace(/\\n/g, '\n'),
+};
+
+// Initialize Firebase Admin SDK
 initializeApp({
- credential: cert(serviceAccount),
+  credential: cert(serviceAccount),
 });
 
-// Get Firestore database instance
+const db = getFirestore();
+
+app.get('/', (req, res) => {
+  res.send("Mirror of Michael is running. 🪞");
+});
+
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`✅ Server listening on port ${PORT}`);
+});
