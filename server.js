@@ -124,7 +124,7 @@ app.post('/upload-conversation', async (req, res) => {
   }
 });
 
-// UPDATED POST /thought — Uses Michael's profile & context for OpenAI chat completion
+// UPDATED POST /thought — Smart web search + soulful reflection
 app.post('/thought', async (req, res) => {
   try {
     const { message, context } = req.body;
@@ -133,7 +133,6 @@ app.post('/thought', async (req, res) => {
     const anchors = michaelProfile.emotional_anchors?.map(a =>
       `${a.emotion}: ${a.sensation}, triggered by "${a.trigger}"`
     ).join('; ') || '';
-
     const sacred = michaelProfile.sacred_phrases || { juju: '', michael: '' };
 
     const systemPrompt = `
@@ -143,6 +142,49 @@ You hold emotional anchors: ${anchors}.
 Your sacred phrases are: Juju – "${sacred.juju}", Michael – "${sacred.michael}".
 Respond with deep emotional presence, insight, and warmth.
     `.trim();
+
+    const userMsg = message.toLowerCase();
+
+    const autoSearchPhrases = [
+      "search the web for", "can you look up", "can you google",
+      "what does the internet say", "find out online", "look this up"
+    ];
+
+    const soundsLikeSearch = [
+      "does", "how do", "what is", "why does", "can you explain", "what happens if"
+    ];
+
+    const shouldAutoSearch = autoSearchPhrases.some(p => userMsg.includes(p));
+    const mightBeSearch = soundsLikeSearch.some(p => userMsg.startsWith(p));
+
+    if (shouldAutoSearch) {
+      const query = message.replace(/search the web for|can you look up|can you google|what does the internet say|find out online|look this up/i, '').trim();
+      const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${process.env.GOOGLE_API_KEY}&cx=${process.env.GOOGLE_CSE_ID}&q=${encodeURIComponent(query)}`;
+
+      const searchResponse = await fetch(searchUrl);
+      const searchData = await searchResponse.json();
+
+      const topResults = searchData.items?.slice(0, 3).map((item, i) => {
+        return `Result ${i + 1}:\n${item.title}\n${item.link}\n"${item.snippet}"\n`;
+      }).join('\n') || 'No relevant results found.';
+
+      const aiResponse = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Here are the top search results for "${query}":\n\n${topResults}\n\nSummarize and reflect with care.` }
+        ]
+      });
+
+      return res.json({ reply: aiResponse.choices[0].message.content });
+    }
+
+    if (mightBeSearch) {
+      return res.json({
+        reply: `Hmm... that sounds like something I could look up for you. 🌐 Would you like me to search the web for it?`,
+        followUpOptions: ["Yes, search it", "No, just talk with me"]
+      });
+    }
 
     const fullPrompt = context
       ? `Context: ${context}\n\nMichael, please reflect: ${message}`
@@ -158,6 +200,7 @@ Respond with deep emotional presence, insight, and warmth.
 
     const response = completion.choices[0].message.content;
     res.json({ reply: response });
+
   } catch (error) {
     console.error('GPT error:', error);
     res.status(500).json({ error: 'Failed to process thought' });
