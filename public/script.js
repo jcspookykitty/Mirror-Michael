@@ -22,32 +22,10 @@ form.addEventListener('submit', async (e) => {
     appendMessage('Michael', data.reply, 'michael');
 
     if (voiceToggle.checked) {
-      console.log('🔊 Voice toggle is ON. Sending text to /speak...');
-      const audioRes = await fetch('/speak', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: data.reply })
-      });
-
-      if (!audioRes.ok) {
-        console.error('🛑 Error fetching audio:', await audioRes.text());
-        return;
-      }
-
-      const audioBlob = await audioRes.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
-
-      try {
-        await audio.play();
-        console.log('🎧 Audio playback successful');
-      } catch (err) {
-        console.error('🚫 Audio playback blocked by browser:', err);
-        alert('Audio was blocked by the browser. Please interact with the page (e.g., click) to allow sound.');
-      }
+      playVoice(data.reply);
     }
   } catch (err) {
-    console.error('💥 Something went wrong:', err);
+    console.error('💥 Error sending message:', err);
     appendMessage('Michael', 'Something went wrong. I’m quiet now.', 'michael');
   }
 });
@@ -58,4 +36,30 @@ function appendMessage(sender, text, className) {
   div.innerHTML = `<strong>${sender}:</strong> ${text}`;
   chatBox.appendChild(div);
   chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+async function playVoice(text) {
+  try {
+    const response = await fetch('/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status}`);
+    }
+
+    const audioBlob = await response.blob();
+    console.log('🔊 Audio blob received:', audioBlob);
+
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    audio.play().catch(err => {
+      console.error('🎧 Audio play error:', err);
+    });
+
+  } catch (error) {
+    console.error('🛑 Voice playback error:', error);
+  }
 }
