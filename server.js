@@ -64,6 +64,7 @@ app.get('/', (req, res) => {
   res.send('✨ Mirror Michael API is alive ✨');
 });
 
+// POST /memory — Store a memory
 app.post('/memory', async (req, res) => {
   try {
     const memory = {
@@ -83,6 +84,7 @@ app.post('/memory', async (req, res) => {
   }
 });
 
+// GET /memory — Get all memories ordered by timestamp desc
 app.get('/memory', async (req, res) => {
   try {
     const snapshot = await db.collection('memory_stones').orderBy('timestamp', 'desc').get();
@@ -94,7 +96,35 @@ app.get('/memory', async (req, res) => {
   }
 });
 
-// === ✅ UPDATED POST /thought ===
+// NEW: POST /upload-conversation — Upload conversation file to Firebase Storage and record metadata
+app.post('/upload-conversation', async (req, res) => {
+  try {
+    // Expecting conversation text and metadata in body
+    const { conversationText, title, tags } = req.body;
+
+    if (!conversationText) {
+      return res.status(400).json({ error: 'Conversation text is required.' });
+    }
+
+    // Save conversation text as a Firestore document (you can also integrate Firebase Storage if needed)
+    const docRef = await db.collection('conversations').add({
+      title: title || 'Untitled Conversation',
+      tags: tags || [],
+      text: conversationText,
+      createdAt: new Date()
+    });
+
+    res.status(201).json({
+      message: '💾 Conversation uploaded successfully',
+      id: docRef.id
+    });
+  } catch (error) {
+    console.error('Upload conversation error:', error);
+    res.status(500).json({ error: 'Failed to upload conversation' });
+  }
+});
+
+// UPDATED POST /thought — Uses Michael's profile & context for OpenAI chat completion
 app.post('/thought', async (req, res) => {
   try {
     const { message, context } = req.body;
@@ -134,7 +164,7 @@ Respond with deep emotional presence, insight, and warmth.
   }
 });
 
-// === POST /speak ===
+// POST /speak — Text-to-speech using ElevenLabs
 app.post('/speak', async (req, res) => {
   try {
     const { text } = req.body;
