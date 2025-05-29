@@ -8,14 +8,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Use environment variables safely
+if (!process.env.PRIVATE_KEY) {
+  console.error("❌ PRIVATE_KEY is missing from environment!");
+  process.exit(1);
+}
+
 const serviceAccount = {
   projectId: process.env.PROJECT_ID,
   clientEmail: process.env.CLIENT_EMAIL,
   privateKey: process.env.PRIVATE_KEY.replace(/\\n/g, '\n'),
 };
 
-// Initialize Firebase Admin SDK
 initializeApp({
   credential: cert(serviceAccount),
 });
@@ -23,10 +26,10 @@ initializeApp({
 const db = getFirestore();
 
 app.get('/', (req, res) => {
-  res.send("Mirror of Michael is running. 🪞");
+  res.send("✅ Michael's Mirror server is running!");
 });
 
-const PORT = process.env.PORT || 10000;
+const PORT = 10000;
 app.listen(PORT, () => {
   console.log(`✅ Server listening on port ${PORT}`);
 });
