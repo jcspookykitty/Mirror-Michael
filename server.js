@@ -6,16 +6,20 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import admin from 'firebase-admin';
 
-// 🔐 Paths and environment
+// Setup for __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 🔐 Firebase Setup
-import serviceAccount from './serviceAccountKey.json' assert { type: 'json' };
+// 🔐 Load Firebase service account key
+const serviceAccountPath = path.join(__dirname, 'serviceAccountKey.json');
+const serviceAccount = JSON.parse(
+  await readFile(serviceAccountPath, 'utf8')
+);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -24,18 +28,18 @@ admin.initializeApp({
 const db = admin.firestore();
 const chatRef = db.collection('chatHistory');
 
-// 🛡 Middleware
+// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 📥 POST /api/chat
+// Handle chat message
 app.post('/api/chat', async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: 'Message is required' });
 
   try {
-    const reply = `You said: "${message}". Michael's thinking...`; // Replace with actual OpenAI logic if desired
+    const reply = `You said: "${message}". Michael is pondering...`;
 
     // Save to Firestore
     await chatRef.add({
@@ -51,7 +55,7 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// 📤 GET /api/history
+// Load chat history
 app.get('/api/history', async (req, res) => {
   try {
     const snapshot = await chatRef.orderBy('timestamp').get();
@@ -63,7 +67,7 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
-// 🚀 Start server
+// Start server
 app.listen(PORT, () => {
-  console.log(`✅ Michael's brain is live at http://localhost:${PORT}`);
+  console.log(`✅ Michael is awake and listening on http://localhost:${PORT}`);
 });
