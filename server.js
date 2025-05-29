@@ -149,4 +149,13 @@ app.post('/speak', async (req, res) => {
       'Content-Length': audioBuffer.length
     });
     res.send(audioBuffer);
-  
+  } catch (error) {
+    console.error('Speech synthesis error:', error);
+    res.status(500).json({ error: 'Failed to synthesize speech' });
+  }
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`🌐 Mirror Michael server running on http://localhost:${PORT}`);
+});
