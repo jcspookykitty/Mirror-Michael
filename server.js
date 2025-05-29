@@ -8,6 +8,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Debug print of private key
+console.log("[DEBUG] Raw PRIVATE_KEY:", process.env.PRIVATE_KEY?.slice(0, 50));
+console.log("[DEBUG] Decoded PRIVATE_KEY:", process.env.PRIVATE_KEY?.replace(/\\n/g, '\n').slice(0, 50));
+
 if (!process.env.PRIVATE_KEY) {
   console.error("❌ PRIVATE_KEY is missing from environment!");
   process.exit(1);
