@@ -108,7 +108,7 @@ app.post('/upload-conversation', async (req, res) => {
   }
 });
 
-// POST /thought — fixed to avoid echoing responses
+// POST /thought
 app.post('/thought', async (req, res) => {
   try {
     const { message, context } = req.body;
@@ -191,7 +191,7 @@ Never simply repeat or echo back the user’s message. Instead, offer a reflecti
   }
 });
 
-// POST /speak — Text-to-speech with additional headers for better browser playback
+// POST /speak — Text-to-speech with detailed error info
 app.post('/speak', async (req, res) => {
   try {
     const { text } = req.body;
@@ -221,34 +221,17 @@ app.post('/speak', async (req, res) => {
     if (!response.ok) {
       const errorBody = await response.text();
       console.error('🔴 ElevenLabs API error:', response.status, errorBody);
-      return res.status(500).json({ error: `ElevenLabs API error: ${response.status}` });
+      return res.status(500).json({
+        error: `ElevenLabs API error: ${response.status}`,
+        details: errorBody
+      });
     }
 
     const audioBuffer = await response.buffer();
 
-    // Set response headers for playback in the browser
+    // Add CORS headers for audio response
     res.set({
-      'Content-Type': 'audio/mpeg',
-      'Content-Length': audioBuffer.length,
-      'Access-Control-Allow-Origin': '*',  // Let browsers load audio
-      'Cache-Control': 'no-store'          // Avoid caching issues
-    });
-
-    res.send(audioBuffer);
-  } catch (error) {
-    console.error('🛑 Speech synthesis error:', error.message);
-    res.status(500).json({ error: 'Failed to synthesize speech' });
-  }
-});
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error('🔴 ElevenLabs API error:', response.status, errorBody);
-      return res.status(500).json({ error: `ElevenLabs API error: ${response.status}` });
-    }
-
-    const audioBuffer = await response.buffer();
-    res.set({
+      'Access-Control-Allow-Origin': '*',
       'Content-Type': 'audio/mpeg',
       'Content-Length': audioBuffer.length
     });
