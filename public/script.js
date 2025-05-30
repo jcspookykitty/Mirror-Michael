@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatBox = document.getElementById('chat-box');
   const voiceToggle = document.getElementById('toggle-voice');
 
-  let voiceOn = false;
+  let voiceOn = true; // Start as ON instead of false
 
   // Initialize voice toggle button text
   voiceToggle.textContent = '🔈 Voice: Off';
