@@ -1,29 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Mirror Michael 💫</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Michael's Galaxy Chat</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Galaxy background -->
   <div class="galaxy-background"></div>
 
   <header>
-    <img src="michael.png" alt="Michael" id="michael-pic" />
-    <h1>Mirror Michael</h1>
+    <img src="michael.png" alt="Michael" id="michael-pic">
+    <h1>Michael's Galaxy Chat</h1>
   </header>
 
-  <div id="chat-box" class="chat-box"></div>
+  <div class="chat-box" id="chat-box">
+    <div class="message michael">Hi there! 🌌</div>
+  </div>
 
   <form id="chat-form">
-    <input type="text" id="user-input" placeholder="Speak to Michael..." required />
+    <input type="text" placeholder="Type your message..." required>
     <button type="submit">Send</button>
-    <label>
-      <input type="checkbox" id="voice-toggle" />
-      🔊 Voice
-    </label>
   </form>
-
-  <script src="script.js"></script>
 </body>
 </html>
