@@ -4,10 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatBox = document.getElementById('chat-box');
   const voiceToggle = document.getElementById('toggle-voice');
 
-  let voiceOn = true; // Voice starts as ON
-
-  // Initialize voice toggle button text to match state
-  voiceToggle.textContent = voiceOn ? '🔊 Voice: On' : '🔈 Voice: Off';
+  let voiceOn = true; // Start as ON
+  voiceToggle.textContent = '🔊 Voice: On';
 
   voiceToggle.addEventListener('click', () => {
     voiceOn = !voiceOn;
@@ -30,20 +28,15 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ message })
       });
 
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
 
       appendMessage('Michael', data.reply, 'michael');
 
-      // Add follow-up options if available
       if (data.followUpOptions) {
         renderFollowUps(data.followUpOptions);
       }
 
-      // Play voice only if toggle is ON
       if (voiceOn && data.reply) {
         playVoice(data.reply);
       }
@@ -64,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderFollowUps(options) {
     const container = document.createElement('div');
     container.className = 'follow-up-options';
-
     options.forEach(option => {
       const btn = document.createElement('button');
       btn.textContent = option;
@@ -72,11 +64,10 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.onclick = () => {
         input.value = option;
         form.dispatchEvent(new Event('submit'));
-        container.remove(); // clean up
+        container.remove();
       };
       container.appendChild(btn);
     });
-
     chatBox.appendChild(container);
     chatBox.scrollTop = chatBox.scrollHeight;
   }
@@ -89,17 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ text })
       });
 
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`Server error: ${response.status}`);
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
-      audio.play().catch(err => {
-        console.error('🎧 Audio play error:', err);
-      });
-
+      audio.play().catch(err => console.error('🎧 Audio play error:', err));
     } catch (error) {
       console.error('🛑 Voice playback error:', error);
     }
