@@ -4,13 +4,16 @@ body, html {
   padding: 0;
   height: 100%;
   font-family: 'Helvetica Neue', sans-serif;
-  color: #fff;
+  color: #ffffff;
   overflow: hidden;
+  background-color: #0d0d0d;
 }
 
 header {
   text-align: center;
   padding: 1rem;
+  position: relative;
+  z-index: 2;
 }
 
 header h1 {
@@ -28,7 +31,7 @@ header h1 {
 
 /* Chat box styles */
 .chat-box {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.6);
   border-radius: 10px;
   padding: 1rem;
   margin: 1rem;
@@ -69,21 +72,22 @@ input[type="text"] {
   border-radius: 20px;
   outline: none;
   background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: #ffffff;
+  border: 1px solid #a377ff;
 }
 
 button {
   background: #a377ff;
   border: none;
   border-radius: 20px;
-  color: #fff;
+  color: #ffffff;
   padding: 0.5rem 1rem;
   cursor: pointer;
 }
 
 button:hover {
   background: #d4bfff;
-  color: #000;
+  color: #000000;
 }
 
 /* Galaxy background animation */
@@ -94,7 +98,7 @@ button:hover {
   width: 200%;
   height: 200%;
   background: radial-gradient(ellipse at center, rgba(30, 0, 60, 1) 0%, rgba(0, 0, 20, 1) 100%);
-  background-image: url('https://i.gifer.com/4x0q.gif'); /* A moving galaxy GIF */
+  background-image: url('https://cdn.pixabay.com/animation/2022/11/17/15/19/15-19-38-1998_512.gif'); /* Galaxy GIF */
   background-size: cover;
   z-index: 0;
   animation: moveGalaxy 60s linear infinite;
