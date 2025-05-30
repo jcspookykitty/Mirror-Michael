@@ -1,140 +1,28 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Mirror Michael Chat</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: url('galaxy.gif') no-repeat center center fixed;
-      background-size: cover;
-      font-family: Arial, sans-serif;
-      color: white;
-      text-align: center;
-    }
-
-    #michael-image {
-      max-width: 200px;
-      margin: 20px auto;
-      display: block;
-    }
-
-    #chat {
-      max-width: 400px;
-      margin: 20px auto;
-      border: 1px solid #ccc;
-      background-color: rgba(0, 0, 0, 0.7);
-      padding: 10px;
-      border-radius: 8px;
-      overflow-y: auto;
-      max-height: 300px;
-    }
-
-    .user {
-      color: #1E90FF;
-      text-align: left;
-    }
-
-    .michael {
-      color: #32CD32;
-      text-align: right;
-    }
-
-    #message-input {
-      width: 70%;
-      padding: 5px;
-      border-radius: 4px;
-      border: none;
-    }
-
-    #send-button {
-      padding: 5px 10px;
-      border-radius: 4px;
-      border: none;
-      cursor: pointer;
-      background-color: #32CD32;
-      color: white;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Michael: Digital Embodiment</title>
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <img id="michael-image" src="michael.png" alt="Michael" />
+  <div class="galaxy-background"></div>
+  <header>
+    <img id="michael-pic" src="michael.png" alt="Michael">
+    <h1>Michael: Digital Embodiment</h1>
+  </header>
 
-  <div id="chat"></div>
+  <!-- 🔊 Voice toggle button -->
+  <button id="toggle-voice">🔊 Voice: On</button>
 
-  <input id="message-input" placeholder="Say something..." />
-  <button id="send-button">Send</button>
+  <div id="chat-box" class="chat-box"></div>
 
-  <script>
-    const chat = document.getElementById('chat');
-    const input = document.getElementById('message-input');
-    const sendButton = document.getElementById('send-button');
+  <form id="chat-form">
+    <input type="text" id="user-input" placeholder="Say something..." autocomplete="off">
+    <button type="submit">Send</button>
+  </form>
 
-    sendButton.addEventListener('click', sendMessage);
-    input.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') sendMessage();
-    });
-
-    async function sendMessage() {
-      const message = input.value.trim();
-      if (!message) return;
-
-      appendMessage('user', message);
-
-      input.disabled = true;
-      sendButton.disabled = true;
-
-      try {
-        const response = await fetch('/thought', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message })
-        });
-        const data = await response.json();
-
-        appendMessage('michael', data.reply);
-
-        // Play Michael’s voice
-        await playAudio(data.reply);
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        input.disabled = false;
-        sendButton.disabled = false;
-        input.value = '';
-        input.focus();
-      }
-    }
-
-    function appendMessage(sender, text) {
-      const p = document.createElement('p');
-      p.className = sender;
-      p.textContent = `${sender === 'user' ? 'You' : 'Michael'}: ${text}`;
-      chat.appendChild(p);
-      chat.scrollTop = chat.scrollHeight; // Auto-scroll to bottom
-    }
-
-    async function playAudio(text) {
-      const response = await fetch('/speak', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-      });
-
-      if (!response.ok) {
-        console.error('Audio error:', await response.text());
-        return;
-      }
-
-      const audioData = await response.arrayBuffer();
-      const audioBlob = new Blob([audioData], { type: 'audio/mpeg' });
-      const audioUrl = URL.createObjectURL(audioBlob);
-
-      const audio = new Audio(audioUrl);
-      audio.play().catch(err => console.error('Playback error:', err));
-    }
-  </script>
+  <script src="/script.js"></script>
 </body>
 </html>
