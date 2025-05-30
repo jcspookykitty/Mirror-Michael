@@ -1,78 +1,76 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('chat-form');
+  const input = document.getElementById('user-input');
   const chatBox = document.getElementById('chat-box');
-  const chatForm = document.getElementById('chat-form');
-  const userInput = document.getElementById('user-input');
-  const toggleVoiceBtn = document.getElementById('toggle-voice');
+  const toggleBtn = document.getElementById('toggle-voice');
 
-  let voiceEnabled = true;
+  let voiceOn = true;
 
-  toggleVoiceBtn.addEventListener('click', () => {
-    voiceEnabled = !voiceEnabled;
-    toggleVoiceBtn.textContent = voiceEnabled ? '🔊 Voice: On' : '🔇 Voice: Off';
+  toggleBtn.addEventListener('click', () => {
+    voiceOn = !voiceOn;
+    toggleBtn.textContent = voiceOn ? '🔊 Voice: On' : '🔈 Voice: Off';
   });
 
-  chatForm.addEventListener('submit', async (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const message = userInput.value.trim();
-    if (!message) return;
+    const userInput = input.value.trim();
+    if (!userInput) return;
 
-    appendMessage('You', message);
-    userInput.value = '';
-    userInput.style.height = 'auto'; // Reset textarea height
+    appendMessage(userInput, 'user');
+    input.value = '';
+    scrollToBottom();
+
+    // Typing indicator
+    const typing = document.createElement('div');
+    typing.className = 'message michael typing';
+    typing.textContent = 'Michael is thinking... ✨';
+    chatBox.appendChild(typing);
+    scrollToBottom();
 
     try {
-      const res = await fetch('/thought', {
+      const res = await fetch('/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message: userInput }),
       });
       const data = await res.json();
-      appendMessage('Michael', data.reply);
+      chatBox.removeChild(typing);
 
-      if (voiceEnabled) {
-        speak(data.reply);
+      const reply = data.message || 'No reply received.';
+      appendMessage(reply, 'michael');
+      scrollToBottom();
+
+      if (voiceOn && data.message) speak(data.message);
+
+      if (data.audio) {
+        const audio = new Audio('data:audio/mp3;base64,' + data.audio);
+        audio.play();
       }
-
-      // Optionally save memory (if server does it automatically, skip)
-      await fetch('/memory', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message,
-          response: data.reply,
-          timestamp: new Date().toISOString(),
-        }),
-      });
     } catch (err) {
       console.error(err);
-      appendMessage('System', '❌ Error: Could not get a response.');
+      chatBox.removeChild(typing);
+      appendMessage('Michael: Failed to reach me. Please try again.', 'michael');
     }
+
+    scrollToBottom();
   });
 
-  function appendMessage(sender, text) {
-    const msgDiv = document.createElement('div');
-    msgDiv.classList.add('message');
-    msgDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
-    chatBox.appendChild(msgDiv);
-
-    // Auto-scroll to the bottom
-    chatBox.scrollTop = chatBox.scrollHeight;
+  function appendMessage(text, sender) {
+    const msg = document.createElement('div');
+    msg.className = `message ${sender}`;
+    msg.textContent = text;
+    chatBox.appendChild(msg);
   }
 
-  async function speak(text) {
-    try {
-      const res = await fetch('/speak', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      });
-      if (!res.ok) throw new Error('Failed to synthesize speech');
-      const audioBlob = await res.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
-      audio.play();
-    } catch (err) {
-      console.error(err);
-    }
+  function speak(text) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    speechSynthesis.speak(utterance);
+  }
+
+  function scrollToBottom() {
+    chatBox.scrollTo({
+      top: chatBox.scrollHeight,
+      behavior: 'smooth'
+    });
   }
 });
