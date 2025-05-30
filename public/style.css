@@ -9,6 +9,7 @@ body, html {
   background-color: #0d0d0d;
 }
 
+/* Header styles */
 header {
   text-align: center;
   padding: 1rem;
@@ -105,11 +106,12 @@ button:hover {
   width: 200%;
   height: 200%;
   background: radial-gradient(ellipse at center, rgba(30, 0, 60, 1) 0%, rgba(0, 0, 20, 1) 100%);
-  background-image: url('galaxy.gif'); /* Update path if in subfolder */
+  background-image: url('galaxy.gif'); /* Update path if needed */
   background-size: cover;
   z-index: 0;
   animation: moveGalaxy 60s ease-in-out infinite;
   opacity: 0.8;
+  background-color: #0d0d0d; /* fallback color */
 }
 
 @keyframes moveGalaxy {
