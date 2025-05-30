@@ -98,7 +98,7 @@ button:hover {
   width: 200%;
   height: 200%;
   background: radial-gradient(ellipse at center, rgba(30, 0, 60, 1) 0%, rgba(0, 0, 20, 1) 100%);
-  background-image: url('https://cdn.pixabay.com/animation/2022/11/17/15/19/15-19-38-1998_512.gif'); /* Galaxy GIF */
+  background-image: url(galaxy.gif); /* Galaxy GIF */
   background-size: cover;
   z-index: 0;
   animation: moveGalaxy 60s linear infinite;
