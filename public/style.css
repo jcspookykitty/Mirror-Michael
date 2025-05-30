@@ -34,8 +34,10 @@ header h1 {
   background: rgba(0, 0, 0, 0.6);
   border-radius: 10px;
   padding: 1rem;
-  margin: 1rem;
+  margin: 1rem auto;
   max-height: 60vh;
+  width: 90%;
+  max-width: 500px;
   overflow-y: auto;
   position: relative;
   z-index: 1;
@@ -63,17 +65,21 @@ form {
   padding: 1rem;
   position: relative;
   z-index: 1;
+  width: 90%;
+  max-width: 500px;
+  margin: 0 auto;
 }
 
 input[type="text"] {
   flex: 1;
-  padding: 0.5rem;
+  padding: 0.5rem 1rem;
   border: none;
   border-radius: 20px;
   outline: none;
   background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
   border: 1px solid #a377ff;
+  width: 100%;
 }
 
 button {
@@ -83,6 +89,7 @@ button {
   color: #ffffff;
   padding: 0.5rem 1rem;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 button:hover {
@@ -98,14 +105,15 @@ button:hover {
   width: 200%;
   height: 200%;
   background: radial-gradient(ellipse at center, rgba(30, 0, 60, 1) 0%, rgba(0, 0, 20, 1) 100%);
-  background-image: url(galaxy.gif); /* Galaxy GIF */
+  background-image: url('galaxy.gif'); /* Update path if in subfolder */
   background-size: cover;
   z-index: 0;
-  animation: moveGalaxy 60s linear infinite;
+  animation: moveGalaxy 60s ease-in-out infinite;
   opacity: 0.8;
 }
 
 @keyframes moveGalaxy {
-  from { transform: translate(0, 0); }
-  to { transform: translate(-25%, -25%); }
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(-12.5%, -12.5%); }
+  100% { transform: translate(0, 0); }
 }
