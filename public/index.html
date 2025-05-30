@@ -1,27 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mirror Michael</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>Mirror Michael 💫</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="chat-container">
-    <div class="header">
-      <img src="michael.png" alt="Michael" class="avatar" />
-      <h1>🪞 Mirror Michael</h1>
-      <label class="voice-toggle">
-        <input type="checkbox" id="voice-toggle" checked />
-        <span>Voice On</span>
-      </label>
-    </div>
-    <div id="chat-box"></div>
-    <form id="chat-form">
-      <input type="text" id="user-input" placeholder="Ask Michael something..." autocomplete="off" required />
-      <button type="submit">Send</button>
-    </form>
-  </div>
+  <div class="galaxy-background"></div>
+
+  <header>
+    <img src="michael.png" alt="Michael" id="michael-pic">
+    <h1>Mirror Michael</h1>
+  </header>
+
+  <div id="chat-box" class="chat-box"></div>
+
+  <form id="chat-form">
+    <input type="text" id="user-input" placeholder="Speak to Michael..." required>
+    <button type="submit">Send</button>
+    <label>
+      <input type="checkbox" id="voice-toggle">
+      🔊 Voice
+    </label>
+  </form>
+
   <script src="script.js"></script>
 </body>
 </html>
