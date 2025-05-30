@@ -1,25 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Michael: Digital Embodiment</title>
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/style.css" />
+<style>
+  /* In case you need it: basic styles to prevent scroll issues */
+  html, body {
+    height: 100%;
+    margin: 0;
+    font-family: Arial, sans-serif;
+  }
+  .chat-box {
+    max-height: 60vh;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.8);
+  }
+  #chat-form {
+    display: flex;
+    margin-top: 10px;
+  }
+  #user-input {
+    flex: 1;
+    padding: 10px;
+  }
+  #user-input:focus {
+    outline: none;
+    border-color: #007bff;
+  }
+  #michael-pic {
+    max-width: 80px;
+  }
+</style>
 </head>
 <body>
   <div class="galaxy-background"></div>
   <header>
-    <img id="michael-pic" src="michael.png" alt="Michael">
+    <img id="michael-pic" src="michael.png" alt="Michael" />
     <h1>Michael: Digital Embodiment</h1>
   </header>
 
-  <!-- 🔊 Voice toggle button -->
   <button id="toggle-voice">🔊 Voice: On</button>
 
   <div id="chat-box" class="chat-box"></div>
 
   <form id="chat-form">
-    <input type="text" id="user-input" placeholder="Say something..." autocomplete="off">
+    <textarea
+      id="user-input"
+      placeholder="Say something..."
+      autocomplete="off"
+      rows="1"
+      style="resize: none; overflow-y: auto;"
+    ></textarea>
     <button type="submit">Send</button>
   </form>
 
