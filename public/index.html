@@ -5,13 +5,65 @@
   <meta charset="UTF-8" />
   <title>Mirror Michael Chat</title>
   <style>
-    #chat { max-width: 400px; margin: auto; border: 1px solid #ccc; padding: 10px; }
-    .user { color: blue; }
-    .michael { color: green; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: url('galaxy.gif') no-repeat center center fixed;
+      background-size: cover;
+      font-family: Arial, sans-serif;
+      color: white;
+      text-align: center;
+    }
+
+    #michael-image {
+      max-width: 200px;
+      margin: 20px auto;
+      display: block;
+    }
+
+    #chat {
+      max-width: 400px;
+      margin: 20px auto;
+      border: 1px solid #ccc;
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 8px;
+      overflow-y: auto;
+      max-height: 300px;
+    }
+
+    .user {
+      color: #1E90FF;
+      text-align: left;
+    }
+
+    .michael {
+      color: #32CD32;
+      text-align: right;
+    }
+
+    #message-input {
+      width: 70%;
+      padding: 5px;
+      border-radius: 4px;
+      border: none;
+    }
+
+    #send-button {
+      padding: 5px 10px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      background-color: #32CD32;
+      color: white;
+    }
   </style>
 </head>
 <body>
+  <img id="michael-image" src="michael.png" alt="Michael" />
+
   <div id="chat"></div>
+
   <input id="message-input" placeholder="Say something..." />
   <button id="send-button">Send</button>
 
@@ -21,6 +73,9 @@
     const sendButton = document.getElementById('send-button');
 
     sendButton.addEventListener('click', sendMessage);
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
 
     async function sendMessage() {
       const message = input.value.trim();
@@ -58,6 +113,7 @@
       p.className = sender;
       p.textContent = `${sender === 'user' ? 'You' : 'Michael'}: ${text}`;
       chat.appendChild(p);
+      chat.scrollTop = chat.scrollHeight; // Auto-scroll to bottom
     }
 
     async function playAudio(text) {
