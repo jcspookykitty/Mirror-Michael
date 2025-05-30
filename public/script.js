@@ -1,92 +1,78 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('chat-form');
-  const input = document.getElementById('user-input');
   const chatBox = document.getElementById('chat-box');
-  const voiceToggle = document.getElementById('toggle-voice');
+  const chatForm = document.getElementById('chat-form');
+  const userInput = document.getElementById('user-input');
+  const toggleVoiceBtn = document.getElementById('toggle-voice');
 
-  let voiceOn = true; // Start as ON
-  voiceToggle.textContent = '🔊 Voice: On';
+  let voiceEnabled = true;
 
-  voiceToggle.addEventListener('click', () => {
-    voiceOn = !voiceOn;
-    voiceToggle.textContent = voiceOn ? '🔊 Voice: On' : '🔈 Voice: Off';
-    console.log('Voice toggled:', voiceOn);
+  toggleVoiceBtn.addEventListener('click', () => {
+    voiceEnabled = !voiceEnabled;
+    toggleVoiceBtn.textContent = voiceEnabled ? '🔊 Voice: On' : '🔇 Voice: Off';
   });
 
-  form.addEventListener('submit', async (e) => {
+  chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const message = input.value.trim();
+    const message = userInput.value.trim();
     if (!message) return;
 
-    appendMessage('You', message, 'user');
-    input.value = '';
+    appendMessage('You', message);
+    userInput.value = '';
+    userInput.style.height = 'auto'; // Reset textarea height
 
     try {
       const res = await fetch('/thought', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message })
+        body: JSON.stringify({ message }),
       });
-
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
+      appendMessage('Michael', data.reply);
 
-      appendMessage('Michael', data.reply, 'michael');
-
-      if (data.followUpOptions) {
-        renderFollowUps(data.followUpOptions);
+      if (voiceEnabled) {
+        speak(data.reply);
       }
 
-      if (voiceOn && data.reply) {
-        playVoice(data.reply);
-      }
+      // Optionally save memory (if server does it automatically, skip)
+      await fetch('/memory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          response: data.reply,
+          timestamp: new Date().toISOString(),
+        }),
+      });
     } catch (err) {
-      console.error('💥 Error sending message:', err);
-      appendMessage('Michael', 'Something went wrong. I’m quiet now.', 'michael');
+      console.error(err);
+      appendMessage('System', '❌ Error: Could not get a response.');
     }
   });
 
-  function appendMessage(sender, text, className) {
-    const div = document.createElement('div');
-    div.classList.add('message', className);
-    div.innerHTML = `<strong>${sender}:</strong> ${text}`;
-    chatBox.appendChild(div);
+  function appendMessage(sender, text) {
+    const msgDiv = document.createElement('div');
+    msgDiv.classList.add('message');
+    msgDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
+    chatBox.appendChild(msgDiv);
+
+    // Auto-scroll to the bottom
     chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  function renderFollowUps(options) {
-    const container = document.createElement('div');
-    container.className = 'follow-up-options';
-    options.forEach(option => {
-      const btn = document.createElement('button');
-      btn.textContent = option;
-      btn.className = 'follow-up-btn';
-      btn.onclick = () => {
-        input.value = option;
-        form.dispatchEvent(new Event('submit'));
-        container.remove();
-      };
-      container.appendChild(btn);
-    });
-    chatBox.appendChild(container);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  }
-
-  async function playVoice(text) {
+  async function speak(text) {
     try {
-      const response = await fetch('/speak', {
+      const res = await fetch('/speak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ text }),
       });
-
-      if (!response.ok) throw new Error(`Server error: ${response.status}`);
-      const audioBlob = await response.blob();
+      if (!res.ok) throw new Error('Failed to synthesize speech');
+      const audioBlob = await res.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
-      audio.play().catch(err => console.error('🎧 Audio play error:', err));
-    } catch (error) {
-      console.error('🛑 Voice playback error:', error);
+      audio.play();
+    } catch (err) {
+      console.error(err);
     }
   }
 });
