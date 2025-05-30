@@ -1,110 +1,107 @@
-body {
+/* Base styles */
+body, html {
   margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background: linear-gradient(135deg, #1a0033, #000033);
-  color: #eee;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+  padding: 0;
+  height: 100%;
+  font-family: 'Helvetica Neue', sans-serif;
+  color: #fff;
   overflow: hidden;
 }
 
-.chat-container {
-  background: rgba(26, 0, 51, 0.9);
-  border: 2px solid #6a00ff;
-  border-radius: 15px;
-  width: 90%;
-  max-width: 600px;
-  padding: 20px;
-  box-shadow: 0 0 20px #6a00ff;
-  position: relative;
+header {
+  text-align: center;
+  padding: 1rem;
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
+header h1 {
+  font-size: 2rem;
+  color: #d4bfff;
+  margin: 0.5rem 0 0 0;
 }
 
-.avatar {
-  width: 50px;
-  height: 50px;
+#michael-pic {
+  width: 100px;
   border-radius: 50%;
+  border: 2px solid #d4bfff;
+  box-shadow: 0 0 15px #a377ff;
 }
 
-.voice-toggle {
-  display: flex;
-  align-items: center;
-  font-size: 0.9rem;
-  color: #ccc;
-}
-
-#chat-box {
-  max-height: 400px;
+/* Chat box styles */
+.chat-box {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 10px;
+  padding: 1rem;
+  margin: 1rem;
+  max-height: 60vh;
   overflow-y: auto;
-  margin-bottom: 15px;
-  padding-right: 5px;
+  position: relative;
+  z-index: 1;
 }
 
 .message {
-  margin-bottom: 10px;
-  padding: 10px;
-  border-radius: 10px;
-  max-width: 80%;
-  clear: both;
+  margin: 0.5rem 0;
+  line-height: 1.4;
 }
 
 .message.user {
-  background-color: #4a00e0;
-  color: #fff;
-  align-self: flex-end;
-  margin-left: auto;
+  color: #d4bfff;
 }
 
 .message.michael {
-  background-color: #8e2de2;
-  color: #fff;
-  align-self: flex-start;
-  margin-right: auto;
+  color: #9ee7ff;
 }
 
+/* Form styles */
 form {
   display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  position: relative;
+  z-index: 1;
 }
 
 input[type="text"] {
   flex: 1;
-  padding: 10px;
+  padding: 0.5rem;
   border: none;
-  border-radius: 5px 0 0 5px;
+  border-radius: 20px;
   outline: none;
-  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 button {
-  background: #6a00ff;
-  color: white;
+  background: #a377ff;
   border: none;
-  padding: 10px 15px;
-  border-radius: 0 5px 5px 0;
+  border-radius: 20px;
+  color: #fff;
+  padding: 0.5rem 1rem;
   cursor: pointer;
-  font-weight: bold;
+}
 
-  .follow-up-options {
-  margin-top: 10px;
+button:hover {
+  background: #d4bfff;
+  color: #000;
 }
-.follow-up-btn {
-  margin: 5px 5px 0 0;
-  padding: 6px 12px;
-  background-color: #333;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+
+/* Galaxy background animation */
+.galaxy-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(ellipse at center, rgba(30, 0, 60, 1) 0%, rgba(0, 0, 20, 1) 100%);
+  background-image: url('https://i.gifer.com/4x0q.gif'); /* A moving galaxy GIF */
+  background-size: cover;
+  z-index: 0;
+  animation: moveGalaxy 60s linear infinite;
+  opacity: 0.8;
 }
-.follow-up-btn:hover {
-  background-color: #555;
-}
+
+@keyframes moveGalaxy {
+  from { transform: translate(0, 0); }
+  to { transform: translate(-25%, -25%); }
 }
