@@ -3,25 +3,86 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Michael's Galaxy Chat</title>
+<title>Michael’s Cosmic Chat</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Galaxy background -->
-  <div class="galaxy-background"></div>
 
-  <header>
-    <img src="michael.png" alt="Michael" id="michael-pic">
-    <h1>Michael's Galaxy Chat</h1>
-  </header>
+<!-- Galaxy background -->
+<div class="galaxy-background"></div>
 
-  <div class="chat-box" id="chat-box">
-    <div class="message michael">Hi there! 🌌</div>
-  </div>
+<!-- Header with Michael's picture -->
+<header>
+  <img src="michael.png" alt="Michael" id="michael-pic">
+  <h1>Michael’s Cosmic Chat</h1>
+</header>
 
-  <form id="chat-form">
-    <input type="text" placeholder="Type your message..." required>
-    <button type="submit">Send</button>
-  </form>
+<!-- Chat box -->
+<div class="chat-box" id="chat-box"></div>
+
+<!-- Toggle voice button -->
+<button id="toggle-voice">🔈 Voice: Off</button>
+
+<!-- Chat input form -->
+<form id="chat-form">
+  <input type="text" placeholder="Type your message..." required>
+  <button type="submit">Send</button>
+</form>
+
+<!-- Chat handling script -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('chat-form');
+  const chatBox = document.getElementById('chat-box');
+  const input = form.querySelector('input');
+  const toggleBtn = document.getElementById('toggle-voice');
+
+  let voiceOn = false;
+
+  toggleBtn.addEventListener('click', () => {
+    voiceOn = !voiceOn;
+    toggleBtn.textContent = voiceOn ? '🔊 Voice: On' : '🔈 Voice: Off';
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const userInput = input.value.trim();
+    if (!userInput) return;
+
+    // Add user's message
+    const userMessage = document.createElement('div');
+    userMessage.className = 'message user';
+    userMessage.textContent = userInput;
+    chatBox.appendChild(userMessage);
+
+    // Michael's response
+    const responseText = generateMichaelResponse(userInput);
+    const michaelMessage = document.createElement('div');
+    michaelMessage.className = 'message michael';
+    michaelMessage.textContent = responseText;
+    chatBox.appendChild(michaelMessage);
+
+    // Optional: Voice synthesis
+    if (voiceOn) {
+      speak(responseText);
+    }
+
+    // Scroll to bottom and clear input
+    chatBox.scrollTop = chatBox.scrollHeight;
+    input.value = '';
+  });
+
+  function generateMichaelResponse(input) {
+    // Example simple response – replace with AI logic if you want!
+    return `Michael says: "${input}" echoed back to you! 💜✨`;
+  }
+
+  function speak(text) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    speechSynthesis.speak(utterance);
+  }
+});
+</script>
+
 </body>
 </html>
