@@ -9,6 +9,27 @@ body, html {
   background-color: #0d0d0d;
 }
 
+/* Galaxy background animation */
+.galaxy-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(ellipse at center, rgba(30, 0, 60, 1) 0%, rgba(0, 0, 20, 1) 100%);
+  background-image: url('galaxy.gif');
+  background-size: cover;
+  z-index: 0;
+  animation: moveGalaxy 60s ease-in-out infinite;
+  opacity: 0.8;
+}
+
+@keyframes moveGalaxy {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(-12.5%, -12.5%); }
+  100% { transform: translate(0, 0); }
+}
+
 /* Header styles */
 header {
   text-align: center;
@@ -98,24 +119,21 @@ button:hover {
   color: #000000;
 }
 
-/* Galaxy background animation */
-.galaxy-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(ellipse at center, rgba(30, 0, 60, 1) 0%, rgba(0, 0, 20, 1) 100%);
-  background-image: url('galaxy.gif'); /* Update path if needed */
-  background-size: cover;
-  z-index: 0;
-  animation: moveGalaxy 60s ease-in-out infinite;
-  opacity: 0.8;
-  background-color: #0d0d0d; /* fallback color */
+/* Toggle voice button */
+#toggle-voice {
+  display: block;
+  margin: 0 auto;
+  margin-bottom: 1rem;
+  background: #6322a3;
+  border: 2px solid #a377ff;
+  border-radius: 20px;
+  color: #ffffff;
+  padding: 0.3rem 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
 }
 
-@keyframes moveGalaxy {
-  0% { transform: translate(0, 0); }
-  50% { transform: translate(-12.5%, -12.5%); }
-  100% { transform: translate(0, 0); }
+#toggle-voice:hover {
+  background: #a377ff;
+  color: #000000;
 }
