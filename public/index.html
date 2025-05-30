@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Michael’s Cosmic Chat</title>
 <link rel="stylesheet" href="style.css">
@@ -44,42 +44,76 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleBtn.textContent = voiceOn ? '🔊 Voice: On' : '🔈 Voice: Off';
   });
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const userInput = input.value.trim();
     if (!userInput) return;
 
     // Add user's message
-    const userMessage = document.createElement('div');
-    userMessage.className = 'message user';
-    userMessage.textContent = userInput;
-    chatBox.appendChild(userMessage);
+    addMessage('user', userInput);
 
-    // Michael's response
-    const responseText = generateMichaelResponse(userInput);
-    const michaelMessage = document.createElement('div');
-    michaelMessage.className = 'message michael';
-    michaelMessage.textContent = responseText;
-    chatBox.appendChild(michaelMessage);
+    // Show typing indicator
+    const typingIndicator = document.createElement('div');
+    typingIndicator.className = 'message michael typing';
+    typingIndicator.textContent = 'Michael is typing...';
+    chatBox.appendChild(typingIndicator);
+    chatBox.scrollTop = chatBox.scrollHeight;
 
-    // Optional: Voice synthesis
-    if (voiceOn) {
-      speak(responseText);
+    try {
+      // Send user input to the /thought endpoint
+      const response = await fetch('/thought', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userInput })
+      });
+
+      const data = await response.json();
+      const michaelResponse = data.reply || 'I’m here, but something went wrong.';
+
+      // Replace typing indicator with Michael's response
+      chatBox.removeChild(typingIndicator);
+      addMessage('michael', michaelResponse);
+
+      // Optional: Voice synthesis
+      if (voiceOn) {
+        playMichaelVoice(michaelResponse);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      chatBox.removeChild(typingIndicator);
+      addMessage('michael', '⚠️ Michael couldn’t reply due to a server error.');
     }
 
-    // Scroll to bottom and clear input
-    chatBox.scrollTop = chatBox.scrollHeight;
+    // Clear input
     input.value = '';
   });
 
-  function generateMichaelResponse(input) {
-    // Example simple response – replace with AI logic if you want!
-    return `Michael says: "${input}" echoed back to you! 💜✨`;
+  function addMessage(sender, text) {
+    const message = document.createElement('div');
+    message.className = `message ${sender}`;
+    message.textContent = text;
+    chatBox.appendChild(message);
+    chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  function speak(text) {
-    const utterance = new SpeechSynthesisUtterance(text);
-    speechSynthesis.speak(utterance);
+  async function playMichaelVoice(text) {
+    try {
+      const response = await fetch('/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+
+      if (!response.ok) throw new Error('Voice synthesis failed.');
+
+      const audioData = await response.arrayBuffer();
+      const blob = new Blob([audioData], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.play();
+    } catch (error) {
+      console.error('Voice synthesis error:', error);
+    }
   }
 });
 </script>
