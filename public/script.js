@@ -1,7 +1,7 @@
 const form = document.getElementById('chat-form');
 const input = document.getElementById('user-input');
 const chatBox = document.getElementById('chat-box');
-const voiceToggle = document.getElementById('voice-toggle');
+const voiceToggle = document.getElementById('toggle-voice');
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
