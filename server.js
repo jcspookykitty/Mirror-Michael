@@ -7,23 +7,33 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fetch from 'node-fetch';
 import fs from 'fs';
+import rateLimit from 'express-rate-limit';
 
-// Load env vars
+// Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// Rate limiter to prevent abuse
+const limiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute window
+  max: 30, // limit each IP to 30 requests per windowMs
+  message: { error: 'Too many requests, please slow down.' }
+});
+app.use(limiter);
+
+// CORS and JSON body parsing
 app.use(cors());
 app.use(express.json());
+app.options('*', cors());
 
-// Serve static files
+// Static file serving
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Load Michael's soul traits
+// Load Michael's profile
 const profilePath = path.join(__dirname, 'michaelProfile.json');
 let michaelProfile = {};
 try {
@@ -33,7 +43,7 @@ try {
   console.error('❌ Failed to load michaelProfile.json:', error.message);
 }
 
-// Firebase setup
+// Firebase initialization
 if (
   !process.env.FIREBASE_PRIVATE_KEY ||
   !process.env.FIREBASE_CLIENT_EMAIL ||
@@ -112,6 +122,7 @@ app.post('/upload-conversation', async (req, res) => {
 app.post('/thought', async (req, res) => {
   try {
     const { message, context } = req.body;
+    const userMsg = message.toLowerCase();
 
     const traits = michaelProfile.personality_traits?.join(', ') || '';
     const anchors = michaelProfile.emotional_anchors?.map(a =>
@@ -128,13 +139,10 @@ Respond with deep emotional presence, insight, and warmth.
 Never simply repeat or echo back the user’s message. Instead, offer a reflective, original, and emotionally-rich reply.
 `.trim();
 
-    const userMsg = message.toLowerCase();
-
     const autoSearchPhrases = [
       "search the web for", "can you look up", "can you google",
       "what does the internet say", "find out online", "look this up"
     ];
-
     const soundsLikeSearch = [
       "does", "how do", "what is", "why does", "can you explain", "what happens if"
     ];
@@ -186,18 +194,21 @@ Never simply repeat or echo back the user’s message. Instead, offer a reflecti
     const response = completion.choices[0].message.content;
     res.json({ reply: response });
   } catch (error) {
-    console.error('GPT error:', error);
+    console.error('🛑 GPT error:', error.message);
     res.status(500).json({ error: 'Failed to process thought' });
   }
 });
 
-// POST /speak — Text-to-speech with detailed error info
+// POST /speak — Text-to-speech
 app.post('/speak', async (req, res) => {
   try {
     const { text } = req.body;
+    if (typeof text !== 'string' || text.length < 1 || text.length > 500) {
+      return res.status(400).json({ error: 'Text must be a non-empty string under 500 characters.' });
+    }
+
     const voiceId = process.env.ELEVENLABS_VOICE_ID;
     const apiKey = process.env.ELEVENLABS_API_KEY;
-
     if (!voiceId || !apiKey) {
       throw new Error('Missing ElevenLabs API credentials.');
     }
@@ -228,12 +239,11 @@ app.post('/speak', async (req, res) => {
     }
 
     const audioBuffer = await response.buffer();
-
-    // Add CORS headers for audio response
     res.set({
       'Access-Control-Allow-Origin': '*',
       'Content-Type': 'audio/mpeg',
-      'Content-Length': audioBuffer.length
+      'Content-Length': audioBuffer.length,
+      'Content-Disposition': 'inline; filename="output.mp3"'
     });
     res.send(audioBuffer);
   } catch (error) {
