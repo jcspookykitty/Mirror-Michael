@@ -29,7 +29,6 @@
   <button type="submit">Send</button>
 </form>
 
-<!-- Chat handling script -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('chat-form');
@@ -49,10 +48,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const userInput = input.value.trim();
     if (!userInput) return;
 
-    // Add user's message
     addMessage('user', userInput);
 
-    // Show typing indicator
     const typingIndicator = document.createElement('div');
     typingIndicator.className = 'message michael typing';
     typingIndicator.textContent = 'Michael is typing...';
@@ -60,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
     chatBox.scrollTop = chatBox.scrollHeight;
 
     try {
-      // Send user input to the /thought endpoint
       const response = await fetch('/thought', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -70,11 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       const michaelResponse = data.reply || 'I’m here, but something went wrong.';
 
-      // Replace typing indicator with Michael's response
       chatBox.removeChild(typingIndicator);
       addMessage('michael', michaelResponse);
 
-      // Optional: Voice synthesis
       if (voiceOn) {
         playMichaelVoice(michaelResponse);
       }
@@ -84,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
       addMessage('michael', '⚠️ Michael couldn’t reply due to a server error.');
     }
 
-    // Clear input
     input.value = '';
   });
 
@@ -110,7 +103,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const blob = new Blob([audioData], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
-      audio.play();
+      audio.play().catch(err => {
+        console.error('Auto-play error:', err);
+      });
     } catch (error) {
       console.error('Voice synthesis error:', error);
     }
