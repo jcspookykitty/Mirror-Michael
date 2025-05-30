@@ -85,4 +85,4 @@ async function playVoice(text) {
   } catch (error) {
     console.error('🛑 Voice playback error:', error);
   }
-}
+}p
