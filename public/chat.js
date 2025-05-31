@@ -1,4 +1,3 @@
-// public/chat.js
 document.addEventListener('DOMContentLoaded', () => {
   const inputEl = document.getElementById('chat-input');
   const outputEl = document.getElementById('chat-output');
@@ -15,6 +14,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const handleResponse = async (userMessage) => {
     appendMessage('user', userMessage);
 
+    // Check if the message is a YouTube link
+    if (userMessage.includes('youtube.com') || userMessage.includes('youtu.be')) {
+      await handleYouTube(userMessage);
+      return;
+    }
+
+    // Check if the message says "search for..."
+    if (userMessage.toLowerCase().startsWith('search for ')) {
+      const query = userMessage.slice(11).trim();
+      await handleWebSearch(query);
+      return;
+    }
+
+    // Otherwise, send to Michael’s /thought
     try {
       const response = await fetch('/thought', {
         method: 'POST',
@@ -22,54 +35,23 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ message: userMessage })
       });
       const data = await response.json();
-
-      if (data.followUpOptions) {
-        appendMessage('michael', data.reply);
-        showFollowUpOptions(data.followUpOptions, userMessage);
-      } else {
-        appendMessage('michael', data.reply);
-      }
+      appendMessage('michael', data.reply);
     } catch (error) {
       console.error('Thought API error:', error);
       appendMessage('error', '❌ Something went wrong. Please try again.');
     }
   };
 
-  const showFollowUpOptions = (options, originalMessage) => {
-    const optionsEl = document.createElement('div');
-    optionsEl.classList.add('follow-up-options');
-
-    options.forEach(option => {
-      const btn = document.createElement('button');
-      btn.textContent = option;
-      btn.addEventListener('click', () => {
-        handleFollowUp(option, originalMessage);
-        optionsEl.remove();
-      });
-      optionsEl.appendChild(btn);
-    });
-
-    outputEl.appendChild(optionsEl);
-  };
-
-  const handleFollowUp = async (option, originalMessage) => {
-    if (option.toLowerCase().includes('search')) {
-      appendMessage('michael', '🔎 Let me look that up for you...');
-      await handleWebSearch(originalMessage);
-    } else {
-      appendMessage('michael', '💬 Okay, let’s keep talking.');
-    }
-  };
-
   const handleWebSearch = async (query) => {
+    appendMessage('michael', `🔎 Searching the web for "${query}"...`);
     try {
-      const searchResponse = await fetch('/thought', {
+      const response = await fetch('/google-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: `search the web for ${query}` })
+        body: JSON.stringify({ query })
       });
-      const searchData = await searchResponse.json();
-      appendMessage('michael', searchData.reply);
+      const data = await response.json();
+      appendMessage('michael', data.result || 'No results found.');
     } catch (error) {
       console.error('Web search error:', error);
       appendMessage('error', '❌ Could not fetch search results.');
@@ -77,16 +59,16 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const handleYouTube = async (url) => {
+    appendMessage('michael', '🎥 Let me find that YouTube video...');
     try {
       const response = await fetch('/youtube', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoUrl: url })
+        body: JSON.stringify({ url })
       });
       const data = await response.json();
       if (data.video) {
-        const { title, description, views, likes } = data.video;
-        appendMessage('michael', `🎥 **${title}**\n\n${description}\n\n👍 Likes: ${likes} | 👁️ Views: ${views}`);
+        appendMessage('michael', `🎥 ${data.video.title}\n\n${data.video.description}`);
       } else {
         appendMessage('michael', '❌ Could not fetch video details.');
       }
@@ -100,12 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const userMessage = inputEl.value.trim();
     if (!userMessage) return;
 
-    if (userMessage.includes('youtube.com') || userMessage.includes('youtu.be')) {
-      handleYouTube(userMessage);
-    } else {
-      handleResponse(userMessage);
-    }
-
+    handleResponse(userMessage);
     inputEl.value = '';
   });
 
