@@ -1,7 +1,6 @@
 // server.js
 import express from 'express';
 import cors from 'cors';
-import session from 'express-session';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import { Configuration, OpenAIApi } from 'openai';
@@ -15,12 +14,6 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
-
-app.use(session({
-  secret: 'your-session-secret',
-  resave: false,
-  saveUninitialized: true
-}));
 
 // Initialize OpenAI
 const openaiConfig = new Configuration({
