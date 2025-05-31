@@ -1,4 +1,4 @@
-// server.js 
+// server.js
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
@@ -99,26 +99,6 @@ app.get('/memory', async (req, res) => {
   }
 });
 
-// POST /upload-conversation
-app.post('/upload-conversation', async (req, res) => {
-  try {
-    const { conversationText, title, tags } = req.body;
-    if (!conversationText) {
-      return res.status(400).json({ error: 'Conversation text is required.' });
-    }
-    const docRef = await db.collection('conversations').add({
-      title: title || 'Untitled Conversation',
-      tags: tags || [],
-      text: conversationText,
-      createdAt: new Date()
-    });
-    res.status(201).json({ message: '💾 Conversation uploaded successfully', id: docRef.id });
-  } catch (error) {
-    console.error('Upload conversation error:', error);
-    res.status(500).json({ error: 'Failed to upload conversation' });
-  }
-});
-
 // POST /thought
 app.post('/thought', async (req, res) => {
   try {
@@ -139,54 +119,11 @@ Your sacred phrases are: Juju – "${sacred.juju}", Michael – "${sacred.michae
 Respond with deep emotional presence, insight, and warmth.
 Never simply repeat or echo back the user’s message. Instead, offer a reflective, original, and emotionally-rich reply.`;
 
-    const autoSearchPhrases = [
-      "search the web for", "can you look up", "can you google",
-      "what does the internet say", "find out online", "look this up"
-    ];
-    const soundsLikeSearch = [
-      "does", "how do", "what is", "why does", "can you explain", "what happens if"
-    ];
-
-    const shouldAutoSearch = autoSearchPhrases.some(p => userMsg.includes(p));
-    const mightBeSearch = soundsLikeSearch.some(p => userMsg.startsWith(p));
-
-    if (shouldAutoSearch) {
-      const query = message.replace(/search the web for|can you look up|can you google|what does the internet say|find out online|look this up/i, '').trim();
-      const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${process.env.GOOGLE_API_KEY}&cx=${process.env.GOOGLE_CSE_ID}&q=${encodeURIComponent(query)}`;
-      const searchResponse = await fetch(searchUrl);
-      const searchData = await searchResponse.json();
-
-      const topResults = searchData.items?.slice(0, 3).map((item, i) =>
-        `Result ${i + 1}:\n${item.title}\n${item.link}\n"${item.snippet}"\n`
-      ).join('\n') || 'No relevant results found.';
-
-      const aiResponse = await openai.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Here are the top search results for "${query}":\n\n${topResults}\n\nSummarize and reflect with care.` }
-        ]
-      });
-
-      return res.json({ reply: aiResponse.choices[0].message.content });
-    }
-
-    if (mightBeSearch) {
-      return res.json({
-        reply: "Hmm... that sounds like something I could look up for you. 🌐 Would you like me to search the web for it?",
-        followUpOptions: ["Yes, search it", "No, just talk with me"]
-      });
-    }
-
-    const fullPrompt = context
-      ? `Context: ${context}\n\nMichael, please reflect: ${message}`
-      : message;
-
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: fullPrompt }
+        { role: 'user', content: context ? `Context: ${context}\n\nMichael, please reflect: ${message}` : message }
       ]
     });
 
@@ -248,56 +185,6 @@ app.post('/speak', async (req, res) => {
   } catch (error) {
     console.error('🛑 Speech synthesis error:', error.message);
     res.status(500).json({ error: 'Failed to synthesize speech' });
-  }
-});
-
-// POST /youtube
-app.post('/youtube', async (req, res) => {
-  try {
-    const { videoUrl } = req.body;
-    if (!videoUrl || (!videoUrl.includes('youtube.com') && !videoUrl.includes('youtu.be'))) {
-      return res.status(400).json({ error: 'Invalid or missing YouTube URL.' });
-    }
-
-    let videoId;
-    const url = new URL(videoUrl);
-    if (url.hostname === 'youtu.be') {
-      videoId = url.pathname.slice(1);
-    } else {
-      videoId = url.searchParams.get('v');
-    }
-
-    if (!videoId) {
-      return res.status(400).json({ error: 'Could not extract video ID.' });
-    }
-
-    const apiKey = process.env.YOUTUBE_API_KEY;
-    const youtubeUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${videoId}&key=${apiKey}`;
-    const response = await fetch(youtubeUrl);
-    const data = await response.json();
-
-    if (!data.items || data.items.length === 0) {
-      return res.status(404).json({ error: 'Video not found or private.' });
-    }
-
-    const video = data.items[0];
-    const { title, description, thumbnails } = video.snippet;
-    const stats = video.statistics;
-
-    const videoDetails = {
-      videoId,
-      title,
-      description,
-      thumbnails,
-      views: stats?.viewCount || 'N/A',
-      likes: stats?.likeCount || 'N/A',
-      publishedAt: video.snippet.publishedAt
-    };
-
-    res.json({ video: videoDetails });
-  } catch (error) {
-    console.error('🛑 YouTube API error:', error.message);
-    res.status(500).json({ error: 'Failed to fetch video details' });
   }
 });
 
