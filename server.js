@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import axios from 'axios';
-import OpenAI from 'openai'; // ✔️ new style import
+import OpenAI from 'openai';
 import admin from 'firebase-admin';
 
 dotenv.config();
@@ -11,27 +11,46 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Initialize OpenAI (v4+)
+// Initialize OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
 // Initialize Firebase Admin
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+let serviceAccount;
+
+if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+  try {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+  } catch (err) {
+    console.error('❌ Invalid JSON in FIREBASE_SERVICE_ACCOUNT_JSON:', err.message);
+    process.exit(1); // Exit if JSON is invalid
+  }
+} else {
+  console.error('❌ FIREBASE_SERVICE_ACCOUNT_JSON environment variable is not set.');
+  process.exit(1); // Exit if variable is missing
+}
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: process.env.FIREBASE_DATABASE_URL
 });
+
 const firestore = admin.firestore();
 
-// ========== ChatGPT endpoint ==========
+// ========== ChatGPT Endpoint ==========
 app.post('/thought', async (req, res) => {
   const { message } = req.body;
+
+  if (!message || message.trim() === '') {
+    return res.status(400).json({ reply: '❌ Message is required.' });
+  }
+
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -40,6 +59,7 @@ app.post('/thought', async (req, res) => {
         { role: 'user', content: message }
       ]
     });
+
     const reply = completion.choices[0].message.content;
     res.json({ reply });
   } catch (err) {
@@ -48,9 +68,12 @@ app.post('/thought', async (req, res) => {
   }
 });
 
-// ... (rest of the endpoints remain unchanged)
+// ========== Root Endpoint ==========
+app.get('/', (req, res) => {
+  res.send('✨ Mirror-Michael server is running!');
+});
 
 // Start the server
 app.listen(PORT, () => {
-  console.log(`Mirror-Michael server listening on port ${PORT}`);
+  console.log(`✅ Mirror-Michael server listening on port ${PORT}`);
 });
