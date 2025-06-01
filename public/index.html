@@ -1,172 +1,101 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Michael: Digital Embodiment</title>
-<link rel="stylesheet" href="/style.css">
-</head>
-<body>
-  <header>
-    <img src="michael.png" alt="Michael" width="60" style="border-radius: 50%;">
-    <h1>Michael: Digital Embodiment</h1>
-  </header>
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('chat-form');
+  const input = document.getElementById('user-input');
+  const chatBox = document.getElementById('chat-box');
+  const toggleBtn = document.getElementById('toggle-voice');
 
-  <button id="toggle-voice">🔊 Voice: On</button>
+  let voiceOn = true;
 
-  <div class="chat-container">
-    <div id="chat-box"></div>
-    <form id="chat-form">
-      <input type="text" id="user-input" placeholder="Say something..." autocomplete="off">
-      <button type="submit">Send</button>
-    </form>
-  </div>
+  toggleBtn.addEventListener('click', () => {
+    voiceOn = !voiceOn;
+    toggleBtn.textContent = voiceOn ? '🔊 Voice: On' : '🔈 Voice: Off';
+  });
 
-  <script>
-    let voiceEnabled = true;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const userInputText = input.value.trim();
+    if (!userInputText) return;
 
-    document.getElementById('toggle-voice').addEventListener('click', () => {
-      voiceEnabled = !voiceEnabled;
-      document.getElementById('toggle-voice').textContent = voiceEnabled ? '🔊 Voice: On' : '🔇 Voice: Off';
-    });
+    appendMessage(userInputText, 'user');
+    input.value = '';
+    scrollToBottom();
 
-    const chatBox = document.getElementById('chat-box');
-    const chatForm = document.getElementById('chat-form');
-    const userInput = document.getElementById('user-input');
+    // Typing indicator
+    const typing = document.createElement('div');
+    typing.className = 'message michael typing';
+    typing.textContent = 'Michael is thinking... ✨';
+    chatBox.appendChild(typing);
+    scrollToBottom();
 
-    chatForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const message = userInput.value.trim();
-      if (!message) return;
+    try {
+      if (userInputText.toLowerCase().startsWith('youtube ')) {
+        const query = userInputText.slice(8).trim();
 
-      addMessage(message, 'user');
-      userInput.value = '';
-      addMessage('Michael is thinking...', 'michael', true);
-
-      try {
-        const thoughtResponse = await fetch('/thought', {
+        const youtubeRes = await fetch('/youtube', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message })
+          body: JSON.stringify({ query }),
         });
-        const { reply } = await thoughtResponse.json();
+        const youtubeData = await youtubeRes.json();
+        chatBox.removeChild(typing);
 
-        removeTypingIndicator();
-        addMessage(reply, 'michael');
-
-        if (voiceEnabled) {
-          const speakResponse = await fetch('/speak', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: reply })
-          });
-          const { audio_url } = await speakResponse.json();
-
-          if (audio_url) {
-            const audio = new Audio(audio_url);
-            audio.play();
-          }
+        if (youtubeData.videos && youtubeData.videos.length > 0) {
+          const videoLinks = youtubeData.videos
+            .map(v => `<a href="${v.url}" target="_blank">${v.title}</a>`)
+            .join('<br>');
+          appendMessage(`Here are some YouTube links:<br>${videoLinks}`, 'michael', true);
+        } else {
+          appendMessage('Michael: I couldn’t find any videos.', 'michael');
         }
-      } catch (err) {
-        console.error('❌ Error:', err.message);
-        removeTypingIndicator();
-        addMessage('❌ Michael had trouble responding.', 'michael');
+      } else {
+        const res = await fetch('/thought', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: userInputText }),
+        });
+        const data = await res.json();
+        chatBox.removeChild(typing);
+
+        const reply = data.reply || 'No reply received.';
+        appendMessage(reply, 'michael');
+        scrollToBottom();
+
+        if (voiceOn && data.reply) speak(data.reply);
+
+        if (data.audio) {
+          const audio = new Audio('data:audio/mp3;base64,' + data.audio);
+          audio.play();
+        }
       }
-    });
+    } catch (err) {
+      console.error(err);
+      chatBox.removeChild(typing);
+      appendMessage('Michael: Failed to reach me. Please try again.', 'michael');
+    }
 
-    function addMessage(text, sender, isTyping = false) {
-      const msg = document.createElement('div');
-      msg.classList.add('message', sender);
-      if (isTyping) msg.classList.add('typing');
+    scrollToBottom();
+  });
+
+  function appendMessage(text, sender, isHTML = false) {
+    const msg = document.createElement('div');
+    msg.className = `message ${sender}`;
+    if (isHTML) {
+      msg.innerHTML = text;
+    } else {
       msg.textContent = text;
-      chatBox.appendChild(msg);
-      chatBox.scrollTop = chatBox.scrollHeight;
     }
+    chatBox.appendChild(msg);
+  }
 
-    function removeTypingIndicator() {
-      const typingMsg = chatBox.querySelector('.typing');
-      if (typingMsg) typingMsg.remove();
-    }
-  </script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #000;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      margin: 0;
-    }
-    header {
-      text-align: center;
-      padding: 10px;
-      background: rgba(0, 0, 0, 0.5);
-    }
-    .chat-container {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    #chat-box {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .message {
-      max-width: 70%;
-      padding: 10px 15px;
-      border-radius: 15px;
-      line-height: 1.4;
-      word-wrap: break-word;
-    }
-    .user {
-      align-self: flex-end;
-      background: #4caf50;
-      color: #fff;
-    }
-    .michael {
-      align-self: flex-start;
-      background: #333;
-      color: #eee;
-    }
-    .typing {
-      font-style: italic;
-      opacity: 0.7;
-    }
-    form {
-      display: flex;
-      padding: 10px;
-      background: #111;
-    }
-    form input {
-      flex: 1;
-      padding: 10px;
-      border: none;
-      border-radius: 15px;
-      margin-right: 10px;
-    }
-    form button {
-      background: #4caf50;
-      border: none;
-      color: #fff;
-      border-radius: 15px;
-      padding: 10px 15px;
-      cursor: pointer;
-    }
-    #toggle-voice {
-      background: #222;
-      color: #fff;
-      border: none;
-      margin: 5px;
-      border-radius: 15px;
-      padding: 5px 10px;
-      cursor: pointer;
-    }
-  </style>
-</body>
-</html>
+  function speak(text) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    speechSynthesis.speak(utterance);
+  }
+
+  function scrollToBottom() {
+    chatBox.scrollTo({
+      top: chatBox.scrollHeight,
+      behavior: 'smooth'
+    });
+  }
+});
