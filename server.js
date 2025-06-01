@@ -15,13 +15,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Safely load Michael's profile
+// Load Michael’s profile
 let profile = {};
 try {
   const profileData = fs.readFileSync('./data/profile.json', 'utf8');
   profile = JSON.parse(profileData);
 
-  // Fallbacks if keys are missing
   profile.personality_traits = profile.personality_traits || [];
   profile.emotional_anchors = profile.emotional_anchors || [];
   profile.sacred_phrases = profile.sacred_phrases || { juju: '', michael: '' };
@@ -29,7 +28,6 @@ try {
   console.log('✅ Michael’s soul profile loaded.');
 } catch (err) {
   console.error('❌ Error loading profile.json:', err.message);
-  // Default empty profile fallback
   profile = {
     personality_traits: [],
     emotional_anchors: [],
@@ -42,7 +40,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// ========== /thought Endpoint ==========
+// /thought Endpoint
 app.post('/thought', async (req, res) => {
   const { message } = req.body;
 
@@ -77,7 +75,7 @@ app.post('/thought', async (req, res) => {
   }
 });
 
-// ========== /speak Endpoint (ElevenLabs) ==========
+// /speak Endpoint (ElevenLabs)
 app.post('/speak', async (req, res) => {
   const { text } = req.body;
 
@@ -121,7 +119,7 @@ app.post('/speak', async (req, res) => {
   }
 });
 
-// ========== /youtube Endpoint ==========
+// /youtube Endpoint
 app.post('/youtube', async (req, res) => {
   const { query } = req.body;
 
@@ -152,9 +150,9 @@ app.post('/youtube', async (req, res) => {
   }
 });
 
-// ========== Root Endpoint ==========
+// Root Endpoint
 app.get('/', (req, res) => {
-  res.send('✨ Mirror-Michael server is running and stable!');
+  res.sendFile(__dirname + '/public/index.html');
 });
 
 // Start the server
