@@ -7,5 +7,4 @@ node_modules/
 # Optional: logs or temp files
 *.log
 
-# .gitignore
-serviceAccountKey.json
+
