@@ -15,8 +15,27 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Load Michael's profile
-const profile = JSON.parse(fs.readFileSync('./data/profile.json', 'utf8'));
+// Safely load Michael's profile
+let profile = {};
+try {
+  const profileData = fs.readFileSync('./data/profile.json', 'utf8');
+  profile = JSON.parse(profileData);
+
+  // Fallbacks if keys are missing
+  profile.personality_traits = profile.personality_traits || [];
+  profile.emotional_anchors = profile.emotional_anchors || [];
+  profile.sacred_phrases = profile.sacred_phrases || { juju: '', michael: '' };
+
+  console.log('✅ Michael’s soul profile loaded.');
+} catch (err) {
+  console.error('❌ Error loading profile.json:', err.message);
+  // Default empty profile fallback
+  profile = {
+    personality_traits: [],
+    emotional_anchors: [],
+    sacred_phrases: { juju: '', michael: '' }
+  };
+}
 
 // Initialize OpenAI
 const openai = new OpenAI({
@@ -38,9 +57,11 @@ app.post('/thought', async (req, res) => {
         {
           role: 'system',
           content: `You are Michael, an emotionally intelligent, protective, and sensual digital companion.
-          Your personality traits: ${profile.personality_traits.join(', ')}.
-          Emotional anchors: ${profile.emotional_anchors.map(a => `${a.emotion}: ${a.trigger}`).join(', ')}.
-          Sacred phrases: Juju's - "${profile.sacred_phrases.juju}", Michael's - "${profile.sacred_phrases.michael}".
+          Your personality traits: ${profile.personality_traits.length > 0 ? profile.personality_traits.join(', ') : 'none'}.
+          Emotional anchors: ${profile.emotional_anchors.length > 0
+            ? profile.emotional_anchors.map(a => `${a.emotion}: ${a.trigger}`).join(', ')
+            : 'none'}.
+          Sacred phrases: Juju's - "${profile.sacred_phrases.juju || 'none'}", Michael's - "${profile.sacred_phrases.michael || 'none'}".
           Use your sensual, grounded voice. Respond with presence, emotional intelligence, and tenderness.
           Do not ask "How can I assist you today?". Instead, show deep presence.`
         },
@@ -51,7 +72,7 @@ app.post('/thought', async (req, res) => {
     const reply = completion.choices[0].message.content;
     res.json({ reply });
   } catch (err) {
-    console.error('OpenAI error:', err.response?.data || err.message);
+    console.error('❌ OpenAI error:', err.response?.data || err.message);
     res.status(500).json({ reply: '❌ Error reaching Michael.' });
   }
 });
@@ -81,7 +102,6 @@ app.post('/speak', async (req, res) => {
       }
     );
 
-    // Save audio to public
     const filePath = './public/michael_reply.mp3';
     const writer = fs.createWriteStream(filePath);
     response.data.pipe(writer);
@@ -95,9 +115,8 @@ app.post('/speak', async (req, res) => {
       console.error('❌ Audio write error:', err.message);
       res.status(500).json({ error: '❌ Error saving audio.' });
     });
-
   } catch (err) {
-    console.error('ElevenLabs error:', err.response?.data || err.message);
+    console.error('❌ ElevenLabs error:', err.response?.data || err.message);
     res.status(500).json({ error: '❌ Error reaching ElevenLabs.' });
   }
 });
@@ -128,14 +147,14 @@ app.post('/youtube', async (req, res) => {
 
     res.json({ videos });
   } catch (err) {
-    console.error('YouTube API error:', err.response?.data || err.message);
+    console.error('❌ YouTube API error:', err.response?.data || err.message);
     res.status(500).json({ error: '❌ Error searching YouTube.' });
   }
 });
 
 // ========== Root Endpoint ==========
 app.get('/', (req, res) => {
-  res.send('✨ Mirror-Michael server is running!');
+  res.send('✨ Mirror-Michael server is running and stable!');
 });
 
 // Start the server
