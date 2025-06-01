@@ -39,11 +39,20 @@ document.addEventListener('DOMContentLoaded', () => {
       appendMessage(reply, 'michael');
       scrollToBottom();
 
-      if (voiceOn && reply) speak(reply);
-
-      if (data.audio) {
-        const audio = new Audio('data:audio/mp3;base64,' + data.audio);
-        audio.play();
+      if (voiceOn && reply) {
+        // Use the /speak endpoint to get the audio
+        const audioRes = await fetch('/speak', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: reply }),
+        });
+        const audioData = await audioRes.json();
+        if (audioData.audio_url) {
+          const audio = new Audio(audioData.audio_url);
+          audio.play();
+        } else {
+          console.error('❌ No audio_url in /speak response:', audioData);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -59,19 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
     msg.className = `message ${sender}`;
     msg.textContent = text;
     chatBox.appendChild(msg);
-  }
-
-  function speak(text) {
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      // Select a default English voice to improve reliability
-      utterance.voice = speechSynthesis.getVoices().find(voice => voice.lang.startsWith('en'));
-      utterance.pitch = 1;
-      utterance.rate = 1;
-      speechSynthesis.speak(utterance);
-    } else {
-      console.log('Speech synthesis not supported in this browser.');
-    }
   }
 
   function scrollToBottom() {
