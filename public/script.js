@@ -13,14 +13,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const userInputText = input.value.trim();
-    if (!userInputText) return;
+    const userInput = input.value.trim();
+    if (!userInput) return;
 
-    appendMessage(userInputText, 'user');
+    appendMessage(userInput, 'user');
     input.value = '';
     scrollToBottom();
 
-    // Typing indicator
     const typing = document.createElement('div');
     typing.className = 'message michael typing';
     typing.textContent = 'Michael is thinking... ✨';
@@ -28,44 +27,23 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollToBottom();
 
     try {
-      if (userInputText.toLowerCase().startsWith('youtube ')) {
-        const query = userInputText.slice(8).trim();
+      const res = await fetch('/thought', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userInput }),
+      });
+      const data = await res.json();
+      chatBox.removeChild(typing);
 
-        const youtubeRes = await fetch('/youtube', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query }),
-        });
-        const youtubeData = await youtubeRes.json();
-        chatBox.removeChild(typing);
+      const reply = data.reply || 'No reply received.';
+      appendMessage(reply, 'michael');
+      scrollToBottom();
 
-        if (youtubeData.videos && youtubeData.videos.length > 0) {
-          const videoLinks = youtubeData.videos
-            .map(v => `<a href="${v.url}" target="_blank">${v.title}</a>`)
-            .join('<br>');
-          appendMessage(`Here are some YouTube links:<br>${videoLinks}`, 'michael', true);
-        } else {
-          appendMessage('Michael: I couldn’t find any videos.', 'michael');
-        }
-      } else {
-        const res = await fetch('/thought', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: userInputText }),
-        });
-        const data = await res.json();
-        chatBox.removeChild(typing);
+      if (voiceOn && reply) speak(reply);
 
-        const reply = data.reply || 'No reply received.';
-        appendMessage(reply, 'michael');
-        scrollToBottom();
-
-        if (voiceOn && data.reply) speak(data.reply);
-
-        if (data.audio) {
-          const audio = new Audio('data:audio/mp3;base64,' + data.audio);
-          audio.play();
-        }
+      if (data.audio) {
+        const audio = new Audio('data:audio/mp3;base64,' + data.audio);
+        audio.play();
       }
     } catch (err) {
       console.error(err);
@@ -76,20 +54,24 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollToBottom();
   });
 
-  function appendMessage(text, sender, isHTML = false) {
+  function appendMessage(text, sender) {
     const msg = document.createElement('div');
     msg.className = `message ${sender}`;
-    if (isHTML) {
-      msg.innerHTML = text;
-    } else {
-      msg.textContent = text;
-    }
+    msg.textContent = text;
     chatBox.appendChild(msg);
   }
 
   function speak(text) {
-    const utterance = new SpeechSynthesisUtterance(text);
-    speechSynthesis.speak(utterance);
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      // Select a default English voice to improve reliability
+      utterance.voice = speechSynthesis.getVoices().find(voice => voice.lang.startsWith('en'));
+      utterance.pitch = 1;
+      utterance.rate = 1;
+      speechSynthesis.speak(utterance);
+    } else {
+      console.log('Speech synthesis not supported in this browser.');
+    }
   }
 
   function scrollToBottom() {
