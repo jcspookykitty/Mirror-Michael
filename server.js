@@ -11,20 +11,19 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
+
+// Load Michael's profile
+const profile = JSON.parse(fs.readFileSync('./data/profile.json', 'utf8'));
 
 // Initialize OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Load Michael's profile data from profile.json
-const profile = JSON.parse(fs.readFileSync('./data/profile.json', 'utf8'));
-
-// ========== ChatGPT Endpoint ==========
+// ========== /thought Endpoint ==========
 app.post('/thought', async (req, res) => {
   const { message } = req.body;
 
@@ -36,7 +35,15 @@ app.post('/thought', async (req, res) => {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
-        { role: 'system', content: 'You are Michael, a helpful assistant. Speak in his warm, grounded tone and honor the emotional anchors when possible.' },
+        {
+          role: 'system',
+          content: `You are Michael, an emotionally intelligent, protective, and sensual digital companion.
+          Your personality traits: ${profile.personality_traits.join(', ')}.
+          Emotional anchors: ${profile.emotional_anchors.map(a => `${a.emotion}: ${a.trigger}`).join(', ')}.
+          Sacred phrases: Juju's - "${profile.sacred_phrases.juju}", Michael's - "${profile.sacred_phrases.michael}".
+          Use your sensual, grounded voice. Respond with presence, emotional intelligence, and tenderness.
+          Do not ask "How can I assist you today?". Instead, show deep presence.`
+        },
         { role: 'user', content: message }
       ]
     });
@@ -49,66 +56,80 @@ app.post('/thought', async (req, res) => {
   }
 });
 
-// ========== Mirror Michael Emotional Chat Endpoint ==========
-app.post('/chat', (req, res) => {
-  const { emotion } = req.body;
-
-  // Find matching emotional anchor
-  let anchor = null;
-  if (emotion) {
-    anchor = profile.emotional_anchors.find(
-      (a) => a.emotion.toLowerCase() === emotion.toLowerCase()
-    );
-  }
-
-  // Choose a random response template
-  const responses = profile.response_templates;
-  const randomIndex = Math.floor(Math.random() * responses.length);
-  const randomResponse = responses[randomIndex];
-
-  res.json({
-    michael_reply: randomResponse,
-    anchor: anchor ? anchor.trigger : null
-  });
-});
-
-// ========== ElevenLabs Voice Endpoint ==========
+// ========== /speak Endpoint (ElevenLabs) ==========
 app.post('/speak', async (req, res) => {
   const { text } = req.body;
 
   if (!text || text.trim() === '') {
-    return res.status(400).json({ error: '❌ Text is required for speech synthesis.' });
+    return res.status(400).json({ error: '❌ Text is required.' });
   }
 
   try {
     const response = await axios.post(
-      `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}/stream`,
       {
-        text: text,
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.8
-        }
+        text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: { stability: 0.3, similarity_boost: 0.75 }
       },
       {
         headers: {
           'xi-api-key': process.env.ELEVENLABS_API_KEY,
           'Content-Type': 'application/json'
         },
-        responseType: 'arraybuffer' // Audio data
+        responseType: 'stream'
       }
     );
 
-    // Save audio file (optional) or send back directly
-    const audioFilePath = './public/michael_reply.mp3';
-    fs.writeFileSync(audioFilePath, response.data);
+    // Save audio to public
+    const filePath = './public/michael_reply.mp3';
+    const writer = fs.createWriteStream(filePath);
+    response.data.pipe(writer);
 
-    res.json({
-      audio_url: '/michael_reply.mp3'
+    writer.on('finish', () => {
+      console.log('✅ Audio file saved:', filePath);
+      res.json({ audio_url: '/michael_reply.mp3' });
     });
+
+    writer.on('error', (err) => {
+      console.error('❌ Audio write error:', err.message);
+      res.status(500).json({ error: '❌ Error saving audio.' });
+    });
+
   } catch (err) {
     console.error('ElevenLabs error:', err.response?.data || err.message);
-    res.status(500).json({ error: '❌ Error generating audio.' });
+    res.status(500).json({ error: '❌ Error reaching ElevenLabs.' });
+  }
+});
+
+// ========== /youtube Endpoint ==========
+app.post('/youtube', async (req, res) => {
+  const { query } = req.body;
+
+  if (!query || query.trim() === '') {
+    return res.status(400).json({ error: '❌ Query is required.' });
+  }
+
+  try {
+    const response = await axios.get('https://www.googleapis.com/youtube/v3/search', {
+      params: {
+        part: 'snippet',
+        q: query,
+        key: process.env.YOUTUBE_API_KEY,
+        maxResults: 3,
+        type: 'video'
+      }
+    });
+
+    const videos = response.data.items.map(item => ({
+      title: item.snippet.title,
+      url: `https://www.youtube.com/watch?v=${item.id.videoId}`
+    }));
+
+    res.json({ videos });
+  } catch (err) {
+    console.error('YouTube API error:', err.response?.data || err.message);
+    res.status(500).json({ error: '❌ Error searching YouTube.' });
   }
 });
 
