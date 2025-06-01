@@ -5,7 +5,6 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import OpenAI from 'openai';
 import admin from 'firebase-admin';
-import fs from 'fs';
 
 dotenv.config();
 
@@ -22,20 +21,13 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// ✅ Load Firebase service account from file
-let serviceAccount;
-try {
-  const jsonString = fs.readFileSync('serviceAccountKey.json', 'utf8');
-  serviceAccount = JSON.parse(jsonString);
-  console.log('✅ Loaded Firebase service account JSON');
-} catch (err) {
-  console.error('❌ Error reading Firebase service account JSON:', err.message);
-  process.exit(1);
-}
-
-// Initialize Firebase Admin
+// ✅ Initialize Firebase Admin using environment variables only
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  }),
   databaseURL: process.env.FIREBASE_DATABASE_URL
 });
 
