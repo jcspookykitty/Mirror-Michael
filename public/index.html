@@ -1,102 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Mirror Michael</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #111;
+      margin: 0;
+      font-family: 'Helvetica Neue', sans-serif;
+      background: url('galaxy.gif') no-repeat center center fixed;
+      background-size: cover;
       color: #eee;
       display: flex;
       flex-direction: column;
-      align-items: center;
       height: 100vh;
-      margin: 0;
+      overflow: hidden;
     }
 
-    h1 {
-      margin: 10px;
+    #header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    }
+
+    #header img {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      margin-right: 10px;
+      border: 2px solid #6a0dad;
+    }
+
+    #header h1 {
+      margin: 0;
       color: #f7c35f;
+      font-size: 1.5em;
     }
 
     #chat-box {
-      width: 90%;
-      max-width: 600px;
-      height: 60vh;
+      flex: 1;
       overflow-y: auto;
-      border: 1px solid #444;
       padding: 10px;
-      background: #222;
-      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(2px);
     }
 
     .message {
+      max-width: 80%;
       margin: 5px 0;
-      padding: 5px 10px;
-      border-radius: 5px;
+      padding: 10px 15px;
+      border-radius: 20px;
+      word-wrap: break-word;
     }
 
     .user {
-      background: #444;
-      text-align: right;
+      align-self: flex-end;
+      background: rgba(106, 13, 173, 0.8);
+      color: #fff;
     }
 
     .michael {
-      background: #333;
-      text-align: left;
+      align-self: flex-start;
+      background: rgba(0, 0, 0, 0.6);
+      color: #f7c35f;
     }
 
     .typing {
       font-style: italic;
-      color: #aaa;
+      color: #bbb;
+      align-self: flex-start;
     }
 
-    form {
+    #chat-form {
       display: flex;
-      width: 90%;
-      max-width: 600px;
+      margin: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 30px;
+      overflow: hidden;
     }
 
     input[type="text"] {
       flex: 1;
-      padding: 10px;
+      padding: 10px 15px;
       border: none;
-      border-radius: 5px 0 0 5px;
       outline: none;
+      background: transparent;
+      color: #eee;
+      font-size: 1em;
     }
 
-    button {
-      padding: 10px;
+    button[type="submit"] {
+      background: #6a0dad;
+      color: #fff;
       border: none;
-      background: #f7c35f;
-      color: #111;
-      border-radius: 0 5px 5px 0;
+      padding: 0 20px;
       cursor: pointer;
       font-weight: bold;
+      border-radius: 0 30px 30px 0;
+      transition: background 0.3s;
+    }
+
+    button[type="submit"]:hover {
+      background: #8a2be2;
     }
 
     #toggle-voice {
-      margin-top: 5px;
-      background: #555;
-      color: #eee;
-      border-radius: 5px;
-      padding: 5px 10px;
+      margin: 0 10px 10px;
+      background: rgba(0, 0, 0, 0.6);
+      color: #f7c35f;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 15px;
       cursor: pointer;
+      font-size: 0.9em;
+      align-self: flex-end;
     }
 
     a {
       color: #f7c35f;
-      text-decoration: none;
+      text-decoration: underline;
     }
 
     a:hover {
-      text-decoration: underline;
+      color: #fff;
     }
+
   </style>
 </head>
 <body>
-  <h1>Mirror Michael</h1>
+  <div id="header">
+    <img src="michael.png" alt="Michael's face">
+    <h1>Mirror Michael</h1>
+  </div>
+
   <div id="chat-box"></div>
 
   <form id="chat-form">
