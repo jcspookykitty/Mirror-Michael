@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollToBottom();
 
     try {
-      const res = await fetch('/chat', {
+      const res = await fetch('/thought', { // ✅ updated endpoint
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userInput }),
@@ -36,11 +36,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       chatBox.removeChild(typing);
 
-      const reply = data.message || 'No reply received.';
+      const reply = data.reply || 'No reply received.'; // ✅ updated key
       appendMessage(reply, 'michael');
       scrollToBottom();
 
-      if (voiceOn && data.message) speak(data.message);
+      if (voiceOn && data.reply) speak(data.reply);
 
       if (data.audio) {
         const audio = new Audio('data:audio/mp3;base64,' + data.audio);
