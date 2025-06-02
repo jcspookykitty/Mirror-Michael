@@ -1,5 +1,6 @@
 # Don't track environment secrets
 .env
+firebaseServiceAccountKey.json
 
 # Node modules (in case you install locally later)
 node_modules/
