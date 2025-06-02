@@ -1,211 +1,36 @@
-/* Base Reset and Fonts */
-* {
-  box-sizing: border-box;
-}
-body {
-  margin: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: radial-gradient(ellipse at center, #000011 0%, #000000 100%);
-  color: #eee;
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Michael Messenger</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
 
-/* Galaxy background */
-.galaxy-background {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: url('galaxy-stars.png') no-repeat center center fixed;
-  background-size: cover;
-  z-index: -1;
-  opacity: 0.25;
-}
+<div class="app-container">
+  <header>
+    <img src="rocket-icon.png" alt="App Icon" class="app-icon" />
+    <h1>Michael Messenger</h1>
+  </header>
 
-/* Header */
-header {
-  padding: 10px 15px;
-  text-align: center;
-  background: rgba(20, 20, 40, 0.8);
-  border-bottom: 1px solid #444;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  justify-content: center;
-}
-header img {
-  width: 55px;
-  height: 55px;
-  border-radius: 50%;
-  border: 2px solid #4caf50;
-  object-fit: cover;
-}
-header h1 {
-  font-weight: 700;
-  font-size: 1.8rem;
-  margin: 0;
-  color: #4caf50;
-  text-shadow: 0 0 8px #4caf50;
-}
+  <div class="chat-box" id="chat-box">
+    <!-- Messages will appear here -->
+  </div>
 
-/* Voice toggle button */
-#toggle-voice {
-  margin: 10px auto;
-  display: block;
-  background: #222;
-  color: #4caf50;
-  border: 1.5px solid #4caf50;
-  border-radius: 25px;
-  padding: 7px 20px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s, color 0.3s;
-  user-select: none;
-}
-#toggle-voice:hover {
-  background: #4caf50;
-  color: #111;
-}
+  <form id="thought-form">
+    <input
+      type="text"
+      id="thought-input"
+      placeholder="Type your message here..."
+      autocomplete="off"
+    />
+    <button type="submit">Send</button>
+  </form>
 
-/* Chat container */
-.chat-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: rgba(10, 10, 20, 0.6);
-  border-top: 1px solid #333;
-  border-bottom: 1px solid #333;
-  overflow: hidden;
-}
+  <audio id="audio-player" controls hidden></audio>
+</div>
 
-/* Chat box (messages area) */
-#chat-box {
-  flex: 1;
-  overflow-y: auto;
-  padding: 15px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  scrollbar-width: thin;
-  scrollbar-color: #4caf50 transparent;
-  /* Smooth scrolling */
-  scroll-behavior: smooth;
-}
-
-/* Scrollbar styling (Firefox) */
-#chat-box {
-  scrollbar-width: thin;
-  scrollbar-color: #4caf50 #222;
-}
-/* Scrollbar styling (Chrome, Edge, Safari) */
-#chat-box::-webkit-scrollbar {
-  width: 8px;
-}
-#chat-box::-webkit-scrollbar-track {
-  background: transparent;
-}
-#chat-box::-webkit-scrollbar-thumb {
-  background-color: #4caf50;
-  border-radius: 4px;
-}
-
-/* Message bubbles */
-.message {
-  max-width: 70%;
-  padding: 12px 18px;
-  border-radius: 20px;
-  line-height: 1.5;
-  word-wrap: break-word;
-  box-shadow: 0 2px 7px rgba(76, 175, 80, 0.3);
-  font-size: 1rem;
-  user-select: text;
-  white-space: pre-wrap; /* Support multiline messages */
-}
-
-/* User messages (green, right aligned) */
-.message.user {
-  align-self: flex-end;
-  background: linear-gradient(135deg, #43a047, #66bb6a);
-  color: #fff;
-  border-bottom-right-radius: 4px;
-  box-shadow: 0 2px 10px rgba(67, 160, 71, 0.6);
-}
-
-/* Michael messages (dark with green text, left aligned) */
-.message.michael {
-  align-self: flex-start;
-  background: linear-gradient(135deg, #222, #333);
-  color: #a5d6a7;
-  border-bottom-left-radius: 4px;
-  box-shadow: 0 2px 10px rgba(0, 100, 0, 0.4);
-}
-
-/* Typing indicator style */
-.message.typing {
-  font-style: italic;
-  opacity: 0.7;
-  color: #b0b0b0;
-  align-self: flex-start;
-  background: transparent;
-  box-shadow: none;
-  padding-left: 0;
-}
-
-/* Chat form at bottom */
-form {
-  display: flex;
-  padding: 12px 20px;
-  background: rgba(15, 15, 25, 0.9);
-  border-top: 1px solid #444;
-}
-
-form input[type="text"] {
-  flex: 1;
-  padding: 12px 15px;
-  border-radius: 25px;
-  border: none;
-  font-size: 1rem;
-  background: #121212;
-  color: #eee;
-  outline-offset: 2px;
-  outline-color: #4caf50;
-  transition: outline-color 0.2s ease;
-}
-
-form input[type="text"]:focus {
-  outline-color: #81c784;
-}
-
-form button {
-  background: #4caf50;
-  border: none;
-  border-radius: 25px;
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-  margin-left: 15px;
-  padding: 0 25px;
-  font-size: 1rem;
-  transition: background-color 0.3s;
-}
-
-form button:hover {
-  background: #66bb6a;
-}
-
-/* Responsive tweaks */
-@media (max-width: 600px) {
-  .message {
-    max-width: 90%;
-    font-size: 0.9rem;
-  }
-  header h1 {
-    font-size: 1.4rem;
-  }
-  #toggle-voice {
-    width: 80%;
-    font-size: 0.9rem;
-  }
-}
+<script src="script.js"></script>
+</body>
+</html>
