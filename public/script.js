@@ -1,20 +1,15 @@
-// Elements
 const form = document.getElementById('thought-form');
 const input = document.getElementById('thought-input');
 const chatBox = document.getElementById('chat-box');
 const audioPlayer = document.getElementById('audio-player');
 
-// Send user message and get Michael’s response
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const message = input.value.trim();
   if (!message) return;
 
-  // Show user's message
   addMessage('You', message);
-
-  // Clear input
   input.value = '';
 
   try {
@@ -26,7 +21,6 @@ form.addEventListener('submit', async (e) => {
     const data = await response.json();
     const reply = data.reply;
 
-    // Show Michael's response
     addMessage('Michael', reply);
 
     // Request audio from ElevenLabs
@@ -48,7 +42,6 @@ form.addEventListener('submit', async (e) => {
   }
 });
 
-// Search YouTube
 async function searchYouTube(query) {
   try {
     const response = await fetch('/youtube', {
@@ -62,7 +55,7 @@ async function searchYouTube(query) {
       const videosHtml = data.videos
         .map(video => `<a href="${video.url}" target="_blank">${video.title}</a>`)
         .join('<br>');
-      addMessage('Michael', `Here are some videos:\n${videosHtml}`);
+      addMessage('Michael', `Here are some videos:<br>${videosHtml}`);
     } else {
       addMessage('Michael', 'No videos found.');
     }
@@ -72,7 +65,6 @@ async function searchYouTube(query) {
   }
 }
 
-// Add message to chat box
 function addMessage(sender, text) {
   const messageEl = document.createElement('div');
   messageEl.classList.add('message');
