@@ -101,6 +101,17 @@ app.post('/youtube', async (req, res) => {
   }
 });
 
+// Serve static files from "public" folder
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// For __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Serve frontend files
+app.use(express.static(path.join(__dirname, 'public')));
+
 // ⚡ Start server
 app.listen(PORT, () => {
   console.log(`🟢 Server is running on port ${PORT}`);
