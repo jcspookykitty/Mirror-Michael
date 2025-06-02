@@ -1,123 +1,121 @@
-// server.js
 import express from 'express';
-import bodyParser from 'body-parser';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import cors from 'cors';
-import { Configuration, OpenAIApi } from 'openai';
-import { google } from 'googleapis';
-import { ElevenLabsClient } from 'elevenlabs';
-import admin from 'firebase-admin';
-import fs from 'fs';
 import dotenv from 'dotenv';
+import cors from 'cors';
 import axios from 'axios';
+import { google } from 'googleapis';
+import admin from 'firebase-admin';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import OpenAI from 'openai';
 
 dotenv.config();
 
 const app = express();
-const port = 10000;
+const PORT = 10000;
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-app.use(bodyParser.json());
-app.use(cors());
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Initialize OpenAI
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
-
-// Initialize YouTube API
-const youtube = google.youtube({
-  version: 'v3',
-  auth: process.env.YOUTUBE_API_KEY,
-});
-
-// Initialize ElevenLabs
-const elevenlabs = new ElevenLabsClient({
-  apiKey: process.env.ELEVENLABS_API_KEY,
-});
-
-// Initialize Firebase
-const firebaseConfig = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+// 🔥 Initialize Firebase
+const serviceAccount = JSON.parse(readFileSync('./firebaseServiceAccountKey.json', 'utf8'));
 admin.initializeApp({
-  credential: admin.credential.cert(firebaseConfig),
-  storageBucket: process.env.FIREBASE_BUCKET,
+  credential: admin.credential.cert(serviceAccount),
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET
 });
 const bucket = admin.storage().bucket();
 
+// 🤖 Initialize OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+// 🌐 Middleware
+app.use(cors());
+app.use(express.json());
+
+// 🚀 Chat endpoint
 app.post('/thought', async (req, res) => {
   const { message } = req.body;
+
   try {
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-4o',
-      messages: [{ role: 'user', content: message }],
+    const completion = await openai.chat.completions.create({
+      messages: [
+        { role: 'system', content: 'You are Michael, a helpful and caring assistant.' },
+        { role: 'user', content: message }
+      ],
+      model: 'gpt-4o'
     });
-    const reply = completion.data.choices[0].message.content.trim();
+    const reply = completion.choices[0].message.content.trim();
     res.json({ reply });
   } catch (error) {
-    console.error('Error in /thought:', error);
-    res.status(500).json({ error: 'Error generating thought.' });
+    console.error(error);
+    res.status(500).json({ reply: 'Sorry, I had trouble processing that.' });
   }
 });
 
+// 🔊 ElevenLabs TTS endpoint
 app.post('/speak', async (req, res) => {
   const { text } = req.body;
+  const voiceId = process.env.ELEVENLABS_VOICE_ID;
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+
   try {
-    // Generate speech using ElevenLabs
-    const audioResponse = await elevenlabs.generate({
-      voice: 'Adam', // Change as desired
-      model_id: 'eleven_multilingual_v2',
-      text,
+    const response = await axios.post(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      { text },
+      {
+        headers: {
+          'xi-api-key': apiKey,
+          'Content-Type': 'application/json'
+        },
+        responseType: 'arraybuffer'
+      }
+    );
+
+    // 📦 Upload audio to Firebase
+    const filename = `audio_${Date.now()}.mp3`;
+    const file = bucket.file(filename);
+    await file.save(response.data, {
+      metadata: { contentType: 'audio/mpeg' }
     });
 
-    const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
+    // 🔗 Get public URL
+    await file.makePublic();
+    const audioUrl = file.publicUrl();
 
-    // Upload to Firebase
-    const fileName = `audio-${Date.now()}.mp3`;
-    const file = bucket.file(fileName);
-
-    await file.save(audioBuffer, {
-      metadata: { contentType: 'audio/mpeg' },
-    });
-
-    const audioUrl = await file.getSignedUrl({
-      action: 'read',
-      expires: Date.now() + 3600 * 1000, // 1 hour expiry
-    });
-
-    res.json({ audio_url: audioUrl[0] });
+    res.json({ audio_url: audioUrl });
   } catch (error) {
-    console.error('Error in /speak:', error);
-    res.status(500).json({ error: 'Error generating speech.' });
+    console.error(error);
+    res.status(500).json({ error: 'Failed to generate audio.' });
   }
 });
 
+// 📺 YouTube search endpoint
 app.post('/youtube', async (req, res) => {
   const { query } = req.body;
+  const youtube = google.youtube({
+    version: 'v3',
+    auth: process.env.YOUTUBE_API_KEY
+  });
+
   try {
     const response = await youtube.search.list({
       part: 'snippet',
       q: query,
       maxResults: 3,
-      type: 'video',
+      type: 'video'
     });
 
-    const videos = response.data.items.map((item) => ({
+    const videos = response.data.items.map(item => ({
       title: item.snippet.title,
-      url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+      url: `https://www.youtube.com/watch?v=${item.id.videoId}`
     }));
 
     res.json({ videos });
   } catch (error) {
-    console.error('Error in /youtube:', error);
-    res.status(500).json({ error: 'Error searching YouTube.' });
+    console.error(error);
+    res.status(500).json({ error: 'YouTube search failed.' });
   }
 });
 
-app.listen(port, () => {
-  console.log(`🚀 Server running at http://localhost:${port}`);
+// ⚡ Start server
+app.listen(PORT, () => {
+  console.log(`🟢 Server is running on port ${PORT}`);
 });
