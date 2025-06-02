@@ -3,15 +3,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const input = document.getElementById('user-input');
   const chatBox = document.getElementById('chat-box');
   const toggleBtn = document.getElementById('toggle-voice');
-  const youtubeForm = document.getElementById('youtube-form');
-  const youtubeInput = document.getElementById('youtube-input');
 
   let voiceOn = true;
 
   toggleBtn.addEventListener('click', () => {
     voiceOn = !voiceOn;
     toggleBtn.textContent = voiceOn ? '🔊 Voice: On' : '🔈 Voice: Off';
-    toggleBtn.setAttribute('aria-label', voiceOn ? 'Voice playback on' : 'Voice playback off');
   });
 
   form.addEventListener('submit', async (e) => {
@@ -23,7 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
     input.value = '';
     scrollToBottom();
 
-    const typing = createTypingIndicator('Michael is thinking... ✨');
+    const typing = document.createElement('div');
+    typing.className = 'message michael typing';
+    typing.textContent = 'Michael is thinking... ✨';
     chatBox.appendChild(typing);
     scrollToBottom();
 
@@ -34,17 +33,30 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ message: userInput }),
       });
       const data = await res.json();
-      removeTypingIndicator(typing);
+      chatBox.removeChild(typing);
 
-      const reply = data.reply || 'No reply received.';
-      appendMessage(reply, 'michael');
-      scrollToBottom();
+      // Append main reply
+      appendMessage(data.reply || 'No reply received.', 'michael');
 
-      if (voiceOn && reply) {
+      // If videos are included, display them
+      if (data.videos && data.videos.length > 0) {
+        data.videos.forEach(video => {
+          const videoMessage = document.createElement('div');
+          videoMessage.className = 'message michael';
+          videoMessage.innerHTML = `
+            <strong>${video.title}</strong><br>
+            <a href="${video.url}" target="_blank">${video.url}</a>
+          `;
+          chatBox.appendChild(videoMessage);
+        });
+      }
+
+      // Play voice if enabled
+      if (voiceOn && data.reply) {
         const audioRes = await fetch('/speak', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: reply }),
+          body: JSON.stringify({ text: data.reply }),
         });
         const audioData = await audioRes.json();
         if (audioData.audio_url) {
@@ -56,51 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (err) {
       console.error(err);
-      removeTypingIndicator(typing);
-      appendMessage('Michael: Failed to reach me. Please try again.', 'michael');
-      scrollToBottom();
-    }
-  });
-
-  youtubeForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const query = youtubeInput.value.trim();
-    if (!query) return;
-
-    appendMessage(`Searching YouTube for: "${query}"`, 'user');
-    youtubeInput.value = '';
-    scrollToBottom();
-
-    const typing = createTypingIndicator('Michael is searching YouTube... 📺');
-    chatBox.appendChild(typing);
-    scrollToBottom();
-
-    try {
-      const res = await fetch('/youtube', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
-      });
-      const data = await res.json();
-      removeTypingIndicator(typing);
-
-      if (data.videos && data.videos.length > 0) {
-        data.videos.forEach(video => {
-          const videoMessage = document.createElement('div');
-          videoMessage.className = 'message michael';
-          videoMessage.innerHTML = `
-            <strong>${video.title}</strong><br>
-            <a href="${video.url}" target="_blank" rel="noopener noreferrer">${video.url}</a>
-          `;
-          chatBox.appendChild(videoMessage);
-        });
-      } else {
-        appendMessage('Michael: No videos found.', 'michael');
-      }
-    } catch (err) {
-      console.error(err);
-      removeTypingIndicator(typing);
-      appendMessage('Michael: Failed to search YouTube. Please try again.', 'michael');
+      chatBox.removeChild(typing);
+      appendMessage('Michael: Something went wrong. Please try again.', 'michael');
     }
 
     scrollToBottom();
@@ -116,20 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function scrollToBottom() {
     chatBox.scrollTo({
       top: chatBox.scrollHeight,
-      behavior: 'smooth',
+      behavior: 'smooth'
     });
-  }
-
-  function createTypingIndicator(text) {
-    const typing = document.createElement('div');
-    typing.className = 'message michael typing';
-    typing.textContent = text;
-    return typing;
-  }
-
-  function removeTypingIndicator(typing) {
-    if (chatBox.contains(typing)) {
-      chatBox.removeChild(typing);
-    }
   }
 });
