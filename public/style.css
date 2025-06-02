@@ -1,36 +1,112 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Michael Messenger</title>
-<link rel="stylesheet" href="styles.css" />
-</head>
-<body>
+/* Reset styles */
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Helvetica Neue', sans-serif;
+  background-color: #1b0d2b;
+  color: #fff;
+  height: 100%;
+}
 
-<div class="app-container">
-  <header>
-    <img src="rocket-icon.png" alt="App Icon" class="app-icon" />
-    <h1>Michael Messenger</h1>
-  </header>
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
 
-  <div class="chat-box" id="chat-box">
-    <!-- Messages will appear here -->
-  </div>
+header {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background-color: #2b0d3c;
+}
 
-  <form id="thought-form">
-    <input
-      type="text"
-      id="thought-input"
-      placeholder="Type your message here..."
-      autocomplete="off"
-    />
-    <button type="submit">Send</button>
-  </form>
+header .app-icon {
+  width: 32px;
+  margin-right: 0.5rem;
+}
 
-  <audio id="audio-player" controls hidden></audio>
-</div>
+header h1 {
+  font-size: 1.2rem;
+  margin: 0;
+}
 
-<script src="script.js"></script>
-</body>
-</html>
+.chat-box {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  background: url('cosmic-background.jpg') center center / cover no-repeat;
+  backdrop-filter: blur(5px);
+}
+
+.message {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.message.michael {
+  justify-content: flex-start;
+}
+
+.message.michael img {
+  width: 36px;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+}
+
+.message.user {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.message p {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  max-width: 70%;
+  word-wrap: break-word;
+}
+
+form {
+  display: flex;
+  padding: 0.5rem;
+  background: #2b0d3c;
+}
+
+form input {
+  flex: 1;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 20px;
+  background: #4b2576;
+  color: #fff;
+}
+
+form button {
+  margin-left: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 20px;
+  background: #7d4bd4;
+  color: #fff;
+  cursor: pointer;
+}
+
+form input:focus {
+  outline: none;
+}
+
+form button:focus {
+  outline: none;
+}
+
+@media (max-width: 600px) {
+  header h1 {
+    font-size: 1rem;
+  }
+
+  .message p {
+    font-size: 0.9rem;
+  }
+}
