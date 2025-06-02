@@ -1,1 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Mirror Michael</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    margin: 0;
+    font-family: 'Helvetica Neue', sans-serif;
+    background: url('galaxy.gif') no-repeat center center fixed;
+    background-size: cover;
+    color: #eee;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
 
+  #header {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+  }
+
+  #header img {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 2px solid #6a0dad;
+    object-fit: cover;
+  }
+
+  #header h1 {
+    margin: 0;
+    color: #f7c35f;
+    font-size: 1em;
+  }
+
+  #chat-box {
+    flex: none;
+    max-height: 55vh; /* 55% of viewport height for a more mobile feel */
+    min-height: 200px;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(2px);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .message {
+    max-width: 85%;
+    margin: 4px 0;
+    padding: 6px 10px;
+    border-radius: 15px;
+    word-wrap: break-word;
+    line-height: 1.4;
+    font-size: 0.9em;
+  }
+
+  .user {
+    align-self: flex-end;
+    background: rgba(106, 13, 173, 0.8);
+    color: #fff;
+  }
+
+  .michael {
+    align-self: flex-start;
+    background: rgba(0, 0, 0, 0.6);
+    color: #f7c35f;
+  }
+
+  .typing {
+    font-style: italic;
+    color: #bbb;
+    align-self: flex-start;
+  }
+
+  #chat-form-container {
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  #chat-form {
+    display: flex;
+    border-radius: 15px;
+    overflow: hidden;
+  }
+
+  input[type="text"] {
+    flex: 1;
+    padding: 6px 10px;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #eee;
+    font-size: 0.9em;
+    min-height: 30px;
+  }
+
+  button[type="submit"] {
+    background: #6a0dad;
+    color: #fff;
+    border: none;
+    padding: 0 12px;
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 0 15px 15px 0;
+    font-size: 0.85em;
+    transition: background 0.3s;
+  }
+
+  button[type="submit"]:hover {
+    background: #8a2be2;
+  }
+
+  #toggle-voice {
+    margin-top: 4px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #f7c35f;
+    border: none;
+    border-radius: 15px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 0.8em;
+    align-self: flex-end;
+  }
+
+  @media (max-width: 600px) {
+    #header img {
+      width: 30px;
+      height: 30px;
+    }
+
+    #header h1 {
+      font-size: 0.95em;
+    }
+
+    .message {
+      font-size: 0.85em;
+      padding: 5px 8px;
+      max-width: 90%;
+    }
+
+    <form id="youtube-form">
+  <input type="text" id="youtube-input" placeholder="Search YouTube..." />
+  <button type="submit">🔎</button>
+</form>
+
+    input[type="text"] {
+      font-size: 0.85em;
+      padding: 5px 8px;
+    }
+
+    button[type="submit"] {
+      font-size: 0.8em;
+      padding: 0 10px;
+    }
+
+    #toggle-voice {
+      font-size: 0.75em;
+      padding: 4px 8px;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <div id="header">
+    <img src="michael-avatar.png" alt="Michael's face" onerror="this.style.display='none';">
+    <h1>Mirror Michael</h1>
+  </div>
+
+  <div id="chat-box"></div>
+
+  <div id="chat-form-container">
+    <form id="chat-form">
+      <input id="user-input" type="text" placeholder="Type your message..." autocomplete="off" />
+      <button type="submit">Send</button>
+    </form>
+    <button id="toggle-voice">🔊 Voice: On</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
