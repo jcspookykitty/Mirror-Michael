@@ -1,3 +1,4 @@
+// script.js
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('chat-form');
   const input = document.getElementById('user-input');
@@ -22,7 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const typing = document.createElement('div');
     typing.className = 'message michael typing';
-    typing.textContent = 'Michael is thinking... ✨';
+    typing.innerHTML = `
+      <div class="avatar"></div>
+      <div class="text">Michael is thinking... ✨</div>
+    `;
     chatBox.appendChild(typing);
     scrollToBottom();
 
@@ -35,26 +39,26 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       chatBox.removeChild(typing);
 
-      if (data.reply) {
-        appendMessage(data.reply, 'michael');
-      }
-
-      // If there are YouTube videos, display them!
+      // If videos returned, show them
       if (data.videos && data.videos.length > 0) {
+        appendMessage(data.reply, 'michael');
         data.videos.forEach(video => {
           const videoMsg = document.createElement('div');
           videoMsg.className = 'message michael';
           videoMsg.innerHTML = `
-            <strong>${video.title}</strong><br>
-            <a href="${video.url}" target="_blank">${video.url}</a>
+            <div class="avatar"></div>
+            <div class="text">
+              <strong>${video.title}</strong><br>
+              <a href="${video.url}" target="_blank">${video.url}</a>
+            </div>
           `;
           chatBox.appendChild(videoMsg);
         });
+      } else {
+        appendMessage(data.reply, 'michael');
       }
 
-      scrollToBottom();
-
-      // Play voice if enabled and reply exists
+      // Voice
       if (voiceOn && data.reply) {
         const audioRes = await fetch('/speak', {
           method: 'POST',
@@ -65,8 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (audioData.audio_url) {
           const audio = new Audio(audioData.audio_url);
           audio.play();
-        } else {
-          console.error('❌ No audio_url in /speak response:', audioData);
         }
       }
     } catch (err) {
@@ -81,7 +83,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function appendMessage(text, sender) {
     const msg = document.createElement('div');
     msg.className = `message ${sender}`;
-    msg.textContent = text;
+    if (sender === 'michael') {
+      msg.innerHTML = `
+        <div class="avatar"></div>
+        <div class="text">${text}</div>
+      `;
+    } else {
+      msg.innerHTML = `<div class="text">${text}</div>`;
+    }
     chatBox.appendChild(msg);
   }
 
