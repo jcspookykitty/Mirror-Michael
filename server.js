@@ -3,22 +3,12 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import axios from 'axios';
 import { google } from 'googleapis';
-import admin from 'firebase-admin';
 import OpenAI from 'openai';
 
 dotenv.config();
 
 const app = express();
 const PORT = 10000;
-
-// 🔥 Initialize Firebase using service account from env
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET
-});
-const bucket = admin.storage().bucket();
 
 // 🤖 Initialize OpenAI
 const openai = new OpenAI({
@@ -68,18 +58,10 @@ app.post('/speak', async (req, res) => {
       }
     );
 
-    // 📦 Upload audio to Firebase
-    const filename = `audio_${Date.now()}.mp3`;
-    const file = bucket.file(filename);
-    await file.save(response.data, {
-      metadata: { contentType: 'audio/mpeg' }
-    });
+    // Serve audio file directly as base64 (no Firebase upload)
+    const audioBase64 = Buffer.from(response.data).toString('base64');
 
-    // 🔗 Get public URL
-    await file.makePublic();
-    const audioUrl = file.publicUrl();
-
-    res.json({ audio_url: audioUrl });
+    res.json({ audio_base64: audioBase64 });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to generate audio.' });
