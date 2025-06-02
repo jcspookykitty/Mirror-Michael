@@ -4,8 +4,6 @@ import cors from 'cors';
 import axios from 'axios';
 import { google } from 'googleapis';
 import admin from 'firebase-admin';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import OpenAI from 'openai';
 
 dotenv.config();
@@ -13,8 +11,9 @@ dotenv.config();
 const app = express();
 const PORT = 10000;
 
-// 🔥 Initialize Firebase
-const serviceAccount = JSON.parse(readFileSync('./firebaseServiceAccountKey.json', 'utf8'));
+// 🔥 Initialize Firebase using service account from env
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   storageBucket: process.env.FIREBASE_STORAGE_BUCKET
