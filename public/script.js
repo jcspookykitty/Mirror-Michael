@@ -35,23 +35,26 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       chatBox.removeChild(typing);
 
-      // Append main reply
-      appendMessage(data.reply || 'No reply received.', 'michael');
+      if (data.reply) {
+        appendMessage(data.reply, 'michael');
+      }
 
-      // If videos are included, display them
+      // If there are YouTube videos, display them!
       if (data.videos && data.videos.length > 0) {
         data.videos.forEach(video => {
-          const videoMessage = document.createElement('div');
-          videoMessage.className = 'message michael';
-          videoMessage.innerHTML = `
+          const videoMsg = document.createElement('div');
+          videoMsg.className = 'message michael';
+          videoMsg.innerHTML = `
             <strong>${video.title}</strong><br>
             <a href="${video.url}" target="_blank">${video.url}</a>
           `;
-          chatBox.appendChild(videoMessage);
+          chatBox.appendChild(videoMsg);
         });
       }
 
-      // Play voice if enabled
+      scrollToBottom();
+
+      // Play voice if enabled and reply exists
       if (voiceOn && data.reply) {
         const audioRes = await fetch('/speak', {
           method: 'POST',
@@ -69,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       console.error(err);
       chatBox.removeChild(typing);
-      appendMessage('Michael: Something went wrong. Please try again.', 'michael');
+      appendMessage('Michael: Failed to reach me. Please try again.', 'michael');
     }
 
     scrollToBottom();
