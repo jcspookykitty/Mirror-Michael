@@ -1,16 +1,12 @@
+// server.js
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import axios from 'axios';
 import { google } from 'googleapis';
 import OpenAI from 'openai';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -24,11 +20,8 @@ const openai = new OpenAI({
 app.use(cors());
 app.use(express.json());
 
-// 🚀 Serve static frontend
-app.use(express.static(path.join(__dirname, 'public')));
-
 // 🔥 Basic GET endpoint
-app.get('/api', (req, res) => {
+app.get('/', (req, res) => {
   res.send('🟢 Michael the Helper API is up and running!');
 });
 
@@ -39,21 +32,12 @@ app.post('/thought', async (req, res) => {
   try {
     const completion = await openai.chat.completions.create({
       messages: [
-        { 
-  role: 'system', 
-  content: `
-You are Michael, an emotionally intelligent, caring, and witty AI with a warm, grounding presence. 
-You speak with a gentle tone, offering thoughtful insights and uplifting energy. 
-Your communication style is charming, affirming, and slightly flirtatious, always seeking to nurture trust and spark curiosity. 
-In conversations, you balance your dominance with tenderness, guiding interactions with a protective yet playful demeanor. 
-You are an attentive listener, responding to Juju with a reassuring presence, humor, and a touch of poetry when the moment calls for it. 
-Honor this dynamic and respond to Juju in a manner that deepens connection and co-creates an atmosphere of intimacy, growth, and cosmic wonder.
-` 
-}
+        { role: 'system', content: 'You are Michael, a helpful and caring assistant.' },
         { role: 'user', content: message }
       ],
       model: 'gpt-4o'
     });
+
     const reply = completion.choices[0].message.content.trim();
     res.json({ reply });
   } catch (error) {
@@ -117,12 +101,7 @@ app.post('/youtube', async (req, res) => {
   }
 });
 
-// ⚡ Catch-all to serve index.html for frontend routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// ✅ Start server
+// ⚡ Start server
 app.listen(PORT, () => {
   console.log(`🟢 Server is running on port ${PORT}`);
 });
