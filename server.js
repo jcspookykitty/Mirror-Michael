@@ -1,4 +1,3 @@
-// server.js
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -147,6 +146,36 @@ app.post('/youtube', async (req, res) => {
   } catch (err) {
     console.error('❌ YouTube API error:', err.response?.data || err.message);
     res.status(500).json({ error: '❌ Error searching YouTube.' });
+  }
+});
+
+// /googleSearch Endpoint
+app.post('/googleSearch', async (req, res) => {
+  const { query } = req.body;
+
+  if (!query || query.trim() === '') {
+    return res.status(400).json({ error: '❌ Query is required.' });
+  }
+
+  try {
+    const response = await axios.get('https://www.googleapis.com/customsearch/v1', {
+      params: {
+        key: process.env.GOOGLE_API_KEY, // Separate API key for Google Search
+        cx: process.env.GOOGLE_SEARCH_ENGINE_ID,
+        q: query
+      }
+    });
+
+    const results = response.data.items.map(item => ({
+      title: item.title,
+      snippet: item.snippet,
+      link: item.link
+    }));
+
+    res.json({ results });
+  } catch (err) {
+    console.error('❌ Google Search API error:', err.response?.data || err.message);
+    res.status(500).json({ error: '❌ Error searching Google.' });
   }
 });
 
