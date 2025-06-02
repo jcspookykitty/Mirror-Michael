@@ -4,11 +4,16 @@ import cors from 'cors';
 import axios from 'axios';
 import { google } from 'googleapis';
 import OpenAI from 'openai';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-const PORT = 10000;
+const PORT = process.env.PORT || 10000;
 
 // 🤖 Initialize OpenAI
 const openai = new OpenAI({
@@ -19,8 +24,11 @@ const openai = new OpenAI({
 app.use(cors());
 app.use(express.json());
 
+// 🚀 Serve static frontend
+app.use(express.static(path.join(__dirname, 'public')));
+
 // 🔥 Basic GET endpoint
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.send('🟢 Michael the Helper API is up and running!');
 });
 
@@ -63,7 +71,6 @@ app.post('/speak', async (req, res) => {
       }
     );
 
-    // Send audio data directly in response
     res.setHeader('Content-Type', 'audio/mpeg');
     res.send(response.data);
   } catch (error) {
@@ -100,7 +107,12 @@ app.post('/youtube', async (req, res) => {
   }
 });
 
-// ⚡ Start server
+// ⚡ Catch-all to serve index.html for frontend routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ✅ Start server
 app.listen(PORT, () => {
   console.log(`🟢 Server is running on port ${PORT}`);
 });
