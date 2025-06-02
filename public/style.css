@@ -35,7 +35,7 @@ header h1 {
   flex: 1;
   padding: 1rem;
   overflow-y: auto;
-  background: url('cosmic-background.jpg') center center / cover no-repeat;
+  background: gif (galaxy) center center / cover no-repeat;
   backdrop-filter: blur(5px);
 }
 
@@ -93,11 +93,7 @@ form button {
   cursor: pointer;
 }
 
-form input:focus {
-  outline: none;
-}
-
-form button:focus {
+form input:focus, form button:focus {
   outline: none;
 }
 
@@ -105,7 +101,6 @@ form button:focus {
   header h1 {
     font-size: 1rem;
   }
-
   .message p {
     font-size: 0.9rem;
   }
