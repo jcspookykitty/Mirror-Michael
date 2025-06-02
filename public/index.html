@@ -1,111 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Michael Chat</title>
-  <style>
-    /* Basic styling for the chat interface */
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #121212;
-      color: #f0f0f0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mirror Michael</title>
+<style>
+  body {
+    margin: 0;
+    font-family: 'Helvetica Neue', sans-serif;
+    background: url('galaxy.gif') no-repeat center center fixed;
+    background-size: cover;
+    color: #eee;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
 
-    #chat-box {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
-      background-color: #1e1e1e;
-    }
+  #header {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+  }
 
-    .message {
-      margin-bottom: 1rem;
-      padding: 0.5rem;
-      border-radius: 4px;
-    }
+  #header img {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 2px solid #6a0dad;
+  }
 
-    .message.user {
-      background-color: #007bff;
-      color: #fff;
-      align-self: flex-end;
-    }
+  #header h1 {
+    margin: 0;
+    color: #f7c35f;
+    font-size: 1em;
+  }
 
-    .message.michael {
-      background-color: #444;
-      color: #f0f0f0;
-      align-self: flex-start;
-    }
+  #chat-box {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(2px);
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
 
-    .typing {
-      font-style: italic;
-      opacity: 0.7;
-    }
+  .message {
+    max-width: 85%;
+    margin: 4px 0;
+    padding: 6px 10px;
+    border-radius: 15px;
+    word-wrap: break-word;
+    line-height: 1.4;
+    font-size: 0.9em;
+  }
 
-    #chat-form,
-    #youtube-form {
-      display: flex;
-      margin: 0.5rem;
-    }
+  .user {
+    align-self: flex-end;
+    background: rgba(106, 13, 173, 0.8);
+    color: #fff;
+  }
 
-    input[type="text"] {
-      flex: 1;
-      padding: 0.5rem;
-      border: none;
-      border-radius: 4px;
-    }
+  .michael {
+    align-self: flex-start;
+    background: rgba(0, 0, 0, 0.6);
+    color: #f7c35f;
+  }
 
-    button {
-      margin-left: 0.5rem;
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      background-color: #28a745;
-      color: #fff;
-    }
+  .typing {
+    font-style: italic;
+    color: #bbb;
+    align-self: flex-start;
+  }
 
-    #toggle-voice {
-      margin: 0.5rem;
-      cursor: pointer;
-      background: none;
-      color: #fff;
-      border: none;
-      font-size: 1rem;
-    }
-  </style>
+  #chat-form-container {
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  #chat-form {
+    display: flex;
+    border-radius: 15px;
+    overflow: hidden;
+  }
+
+  input[type="text"] {
+    flex: 1;
+    padding: 6px 10px;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #eee;
+    font-size: 0.9em;
+    min-height: 30px;
+  }
+
+  button[type="submit"] {
+    background: #6a0dad;
+    color: #fff;
+    border: none;
+    padding: 0 12px;
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 0 15px 15px 0;
+    font-size: 0.85em;
+  }
+
+  #toggle-voice {
+    margin-top: 4px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #f7c35f;
+    border: none;
+    border-radius: 15px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 0.8em;
+  }
+</style>
 </head>
 <body>
+
+  <div id="header">
+    <img src="michael-avatar.png" alt="Michael's face" onerror="this.style.display='none';">
+    <h1>Mirror Michael</h1>
+  </div>
+
   <div id="chat-box"></div>
 
-  <form id="chat-form" autocomplete="off">
-    <input
-      type="text"
-      id="user-input"
-      placeholder="Type your message..."
-      aria-label="Type your message to Michael"
-      required
-    />
-    <button type="submit">Send</button>
-  </form>
-
-  <form id="youtube-form" autocomplete="off">
-    <input
-      type="text"
-      id="youtube-input"
-      placeholder="Search YouTube..."
-      aria-label="Search YouTube"
-      required
-    />
-    <button type="submit">Search</button>
-  </form>
-
-  <button id="toggle-voice" aria-label="Voice playback on">🔊 Voice: On</button>
+  <div id="chat-form-container">
+    <form id="chat-form" autocomplete="off">
+      <input id="user-input" type="text" placeholder="Type your message to Michael..." required />
+      <button type="submit">Send</button>
+    </form>
+    <button id="toggle-voice">🔊 Voice: On</button>
+  </div>
 
   <script src="script.js"></script>
 </body>
-</html>o
+</html>
