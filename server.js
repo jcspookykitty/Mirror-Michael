@@ -19,6 +19,11 @@ const openai = new OpenAI({
 app.use(cors());
 app.use(express.json());
 
+// 🔥 Basic GET endpoint
+app.get('/', (req, res) => {
+  res.send('🟢 Michael the Helper API is up and running!');
+});
+
 // 🚀 Chat endpoint
 app.post('/thought', async (req, res) => {
   const { message } = req.body;
@@ -58,10 +63,9 @@ app.post('/speak', async (req, res) => {
       }
     );
 
-    // Serve audio file directly as base64 (no Firebase upload)
-    const audioBase64 = Buffer.from(response.data).toString('base64');
-
-    res.json({ audio_base64: audioBase64 });
+    // Send audio data directly in response
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.send(response.data);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to generate audio.' });
