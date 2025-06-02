@@ -1,137 +1,88 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('chat-form');
-  const input = document.getElementById('user-input');
-  const chatBox = document.getElementById('chat-box');
-  const toggleBtn = document.getElementById('toggle-voice');
+// Elements
+const form = document.getElementById('thought-form');
+const input = document.getElementById('thought-input');
+const chatBox = document.getElementById('chat-box');
+const audioPlayer = document.getElementById('audio-player');
 
-  let voiceOn = true;
+// Send user message and get Michael’s response
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
 
-  toggleBtn.addEventListener('click', () => {
-    voiceOn = !voiceOn;
-    toggleBtn.textContent = voiceOn ? '🔊 Voice: On' : '🔈 Voice: Off';
-  });
+  const message = input.value.trim();
+  if (!message) return;
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const userInput = input.value.trim();
-    if (!userInput) return;
+  // Show user's message
+  addMessage('You', message);
 
-    // Determine if it's a YouTube search
-    if (userInput.toLowerCase().startsWith('/youtube')) {
-      const query = userInput.replace('/youtube', '').trim();
-      if (!query) {
-        appendMessage('Please enter a YouTube search query.', 'michael');
-        return;
-      }
-      appendMessage(`YouTube Search: "${query}"`, 'user');
-      await searchYouTube(query);
-    } else {
-      appendMessage(userInput, 'user');
-      await sendMessage(userInput);
-    }
+  // Clear input
+  input.value = '';
 
-    input.value = '';
-    scrollToBottom();
-  });
-
-  async function sendMessage(message) {
-    const typing = createTypingMessage();
-    chatBox.appendChild(typing);
-    scrollToBottom();
-
-    try {
-      const res = await fetch('/thought', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
-      });
-      const data = await res.json();
-      chatBox.removeChild(typing);
-
-      const reply = data.reply || 'No reply received.';
-      appendMichaelMessage(reply);
-
-      if (voiceOn && reply) {
-        const audioRes = await fetch('/speak', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: reply }),
-        });
-        const audioData = await audioRes.json();
-        if (audioData.audio_url) {
-          const audio = new Audio(audioData.audio_url);
-          audio.play();
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      chatBox.removeChild(typing);
-      appendMichaelMessage('Michael: Failed to reach me. Please try again.');
-    }
-  }
-
-  async function searchYouTube(query) {
-    const typing = createTypingMessage('Michael is searching YouTube... 📺');
-    chatBox.appendChild(typing);
-    scrollToBottom();
-
-    try {
-      const res = await fetch('/youtube', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
-      });
-      const data = await res.json();
-      chatBox.removeChild(typing);
-
-      if (data.videos && data.videos.length > 0) {
-        data.videos.forEach(video => {
-          const videoMessage = document.createElement('div');
-          videoMessage.className = 'message michael';
-          videoMessage.innerHTML = `
-            <img src="michael-avatar.png" class="avatar" alt="Michael" />
-            <div>
-              <strong>${video.title}</strong><br>
-              <a href="${video.url}" target="_blank">${video.url}</a>
-            </div>
-          `;
-          chatBox.appendChild(videoMessage);
-        });
-      } else {
-        appendMichaelMessage('Michael: No videos found.');
-      }
-    } catch (err) {
-      console.error(err);
-      chatBox.removeChild(typing);
-      appendMichaelMessage('Michael: Failed to search YouTube. Please try again.');
-    }
-  }
-
-  function appendMessage(text, sender) {
-    const msg = document.createElement('div');
-    msg.className = `message ${sender}`;
-    msg.textContent = text;
-    chatBox.appendChild(msg);
-  }
-
-  function appendMichaelMessage(text) {
-    const msg = document.createElement('div');
-    msg.className = 'message michael';
-    msg.innerHTML = `<img src="michael-avatar.png" class="avatar" alt="Michael" /><div>${text}</div>`;
-    chatBox.appendChild(msg);
-  }
-
-  function createTypingMessage(customText) {
-    const typing = document.createElement('div');
-    typing.className = 'message michael';
-    typing.innerHTML = `<img src="michael-avatar.png" class="avatar" alt="Michael" /><div>${customText || 'Michael is thinking... ✨'}</div>`;
-    return typing;
-  }
-
-  function scrollToBottom() {
-    chatBox.scrollTo({
-      top: chatBox.scrollHeight,
-      behavior: 'smooth'
+  try {
+    const response = await fetch('/thought', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
     });
+    const data = await response.json();
+    const reply = data.reply;
+
+    // Show Michael's response
+    addMessage('Michael', reply);
+
+    // Request audio from ElevenLabs
+    const audioResponse = await fetch('/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: reply })
+    });
+
+    if (audioResponse.ok) {
+      const audioBlob = await audioResponse.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      audioPlayer.src = audioUrl;
+      audioPlayer.play();
+    }
+  } catch (error) {
+    console.error(error);
+    addMessage('Michael', 'Sorry, something went wrong.');
   }
 });
+
+// Search YouTube
+async function searchYouTube(query) {
+  try {
+    const response = await fetch('/youtube', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    });
+    const data = await response.json();
+
+    if (data.videos) {
+      const videosHtml = data.videos
+        .map(video => `<a href="${video.url}" target="_blank">${video.title}</a>`)
+        .join('<br>');
+      addMessage('Michael', `Here are some videos:\n${videosHtml}`);
+    } else {
+      addMessage('Michael', 'No videos found.');
+    }
+  } catch (error) {
+    console.error(error);
+    addMessage('Michael', 'YouTube search failed.');
+  }
+}
+
+// Add message to chat box
+function addMessage(sender, text) {
+  const messageEl = document.createElement('div');
+  messageEl.classList.add('message');
+  if (sender === 'Michael') {
+    messageEl.classList.add('michael');
+    messageEl.innerHTML = `<img src="michael-avatar.png" alt="Michael"> <p>${text}</p>`;
+  } else {
+    messageEl.classList.add('user');
+    messageEl.textContent = text;
+  }
+  chatBox.appendChild(messageEl);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
