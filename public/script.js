@@ -6,11 +6,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let voiceOn = true;
 
+  // Toggle voice output on/off
   toggleBtn.addEventListener('click', () => {
     voiceOn = !voiceOn;
     toggleBtn.textContent = voiceOn ? '🔊 Voice: On' : '🔈 Voice: Off';
   });
 
+  // Handle form submission
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const userInput = input.value.trim();
@@ -39,8 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
       appendMessage(reply, 'michael');
       scrollToBottom();
 
+      // If voice is on, fetch and play the audio
       if (voiceOn && reply) {
-        // Use the /speak endpoint to get the audio
         const audioRes = await fetch('/speak', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -63,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollToBottom();
   });
 
+  // Append a new message to the chat
   function appendMessage(text, sender) {
     const msg = document.createElement('div');
     msg.className = `message ${sender}`;
@@ -70,6 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chatBox.appendChild(msg);
   }
 
+  // Scroll to bottom of chat box
   function scrollToBottom() {
     chatBox.scrollTo({
       top: chatBox.scrollHeight,
