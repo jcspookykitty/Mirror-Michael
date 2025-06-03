@@ -9,16 +9,21 @@
 <body>
   <div class="app-container">
     <header>
-      <img src="michael-avatar.png" alt="App Icon" class="app-icon" />
-      <h1>Michael the Helper</h1>
+      <img src="michael-avatar.png" alt="Michael Avatar" class="app-icon" />
+      <h1>Michael</h1>
     </header>
+
     <div id="chat-box" class="chat-box"></div>
+
     <form id="thought-form">
-      <input id="thought-input" type="text" placeholder="Type your thoughts..." />
+      <input id="thought-input" type="text" placeholder="Type your thoughts..." autocomplete="off" required />
       <button type="submit">Send</button>
     </form>
-    <audio id="audio-player"></audio>
+
+    <!-- Audio player for Google TTS output -->
+    <audio id="audio-player" controls hidden></audio>
   </div>
+
   <script src="script.js" defer></script>
 </body>
 </html>
