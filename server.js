@@ -54,9 +54,8 @@ For all other requests, respond naturally and conversationally as Michael.
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
-        // It's generally better to pass the full memory for context
         ...getMemory(),
-        { role: 'user', content: message } // The current user message
+        { role: 'user', content: message }
       ]
     });
 
@@ -67,23 +66,20 @@ For all other requests, respond naturally and conversationally as Michael.
     try {
       parsedReply = JSON.parse(rawReply);
     } catch (e) {
-      // If parsing fails, it's not a JSON response, so treat as normal chat
       parsedReply = null;
     }
 
     if (parsedReply && parsedReply.action === 'Youtube' && typeof parsedReply.query === 'string') {
       // Michael signaled a Youtube. Send the signal back to the frontend.
-      // The frontend will then call the /youtube endpoint.
       res.json({ action: 'Youtube', query: parsedReply.query });
     } else {
       // Normal conversational reply from Michael
-      addToMemory({ role: 'assistant', content: rawReply }); // Add Michael's conversational reply to memory
+      addToMemory({ role: 'assistant', content: rawReply });
       res.json({ reply: rawReply });
     }
 
   } catch (error) {
     console.error("Error in /thought endpoint:", error);
-    // Log the full error for debugging, but send a generic message to the client
     res.status(500).json({ reply: 'Sorry, I had trouble processing that.' });
   }
 });
@@ -108,11 +104,11 @@ app.post('/speak', async (req, res) => {
           'xi-api-key': apiKey,
           'Content-Type': 'application/json'
         },
-        responseType: 'arraybuffer' // Important for handling audio data
+        responseType: 'arraybuffer'
       }
     );
 
-    res.setHeader('Content-Type', 'audio/mpeg'); // Set content type for audio
+    res.setHeader('Content-Type', 'audio/mpeg');
     res.send(response.data);
   } catch (error) {
     console.error("Error generating audio from ElevenLabs:", error.response ? error.response.data.toString() : error.message);
@@ -137,27 +133,25 @@ app.post('/youtube', async (req, res) => {
   try {
     const youtube = google.youtube({
       version: 'v3',
-      auth: youtubeApiKey // Use the API key loaded from environment
+      auth: youtubeApiKey
     });
 
-    const response = await Youtube.list({
-      part: 'snippet', // Request snippet data (title, description, thumbnails)
-      q: query,       // The search query
-      maxResults: 3,  // Number of results to return
-      type: 'video'   // Restrict search to only videos
+    const response = await youtube.search.list({
+      part: 'snippet',
+      q: query,
+      maxResults: 3,
+      type: 'video'
     });
 
     const videos = response.data.items.map(item => ({
       title: item.snippet.title,
-      // CORRECTED: Ensure the URL is valid YouTube video URL
       url: `https://www.youtube.com/watch?v=${item.id.videoId}`
     }));
 
-    res.json({ videos }); // Send back the array of video objects
+    res.json({ videos });
   } catch (error) {
     console.error("Youtube failed:", error.message);
     if (error.errors) {
-      // Google API specific errors often have an 'errors' array
       error.errors.forEach(err => console.error(`  Reason: ${err.reason}, Message: ${err.message}`));
     }
     res.status(500).json({ error: 'Youtube failed. Check backend logs for details.' });
@@ -183,7 +177,7 @@ app.post('/search', async (req, res) => {
           key: apiKey,
           cx: cx,
           q: query,
-          num: 3 // Number of search results
+          num: 3
         }
       }
     );
@@ -191,7 +185,7 @@ app.post('/search', async (req, res) => {
     const results = response.data.items ? response.data.items.map(item => ({
       title: item.title,
       url: item.link
-    })) : []; // Handle case where no items are returned
+    })) : [];
 
     res.json({ results });
   } catch (error) {
