@@ -169,6 +169,49 @@ app.post('/websearch', async (req, res) => {
   }
 });
 
+// === New Speak endpoint for ElevenLabs TTS ===
+app.post('/speak', async (req, res) => {
+  const { text } = req.body;
+  if (!text) return res.status(400).json({ error: 'Text is required' });
+
+  try {
+    const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
+    if (!elevenLabsApiKey) {
+      return res.status(500).json({ error: 'ElevenLabs API key not configured' });
+    }
+
+    const voiceId = 'your-voice-id-here'; // <-- Replace this with your ElevenLabs voice ID
+
+    const response = await axios({
+      method: 'POST',
+      url: `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      headers: {
+        'Content-Type': 'application/json',
+        'xi-api-key': elevenLabsApiKey,
+      },
+      responseType: 'arraybuffer',
+      data: {
+        text: text,
+        voice_settings: {
+          stability: 0.75,
+          similarity_boost: 0.75
+        }
+      }
+    });
+
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': response.data.length
+    });
+
+    res.send(Buffer.from(response.data));
+
+  } catch (error) {
+    console.error('ElevenLabs TTS error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to generate speech audio' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🟢 Server is running on port ${PORT}`);
   console.log(`OpenAI API Key loaded: ${!!process.env.OPENAI_API_KEY}`);
