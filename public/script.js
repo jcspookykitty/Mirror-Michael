@@ -24,6 +24,7 @@ form.addEventListener('submit', async (e) => {
     const data = await response.json(); // Parse the JSON response from the backend
 
     // --- Handle the response from the /thought endpoint ---
+    // CORRECTED LINE: Change 'Youtube' to 'Youtube'
     if (data.action === 'Youtube' && data.query) {
       // If Michael signals a Youtube (based on the new server.js logic)
       addMessage('Michael', `Okay, I'm searching YouTube for "${data.query}"...`); // Provide user feedback
@@ -140,4 +141,3 @@ async function searchWeb(query) {
         addMessage('Michael', 'Web search failed.');
     }
 }
-*/
