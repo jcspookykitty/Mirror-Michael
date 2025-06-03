@@ -19,9 +19,18 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Initialize Google Cloud Text-to-Speech client
+// Parse Google credentials JSON from env var
+let googleCredentials;
+try {
+  googleCredentials = JSON.parse(process.env.GOOGLE_API_KEY_JSON);
+} catch (error) {
+  console.error('Failed to parse GOOGLE_API_KEY_JSON environment variable:', error);
+  process.exit(1);
+}
+
+// Initialize Google Cloud Text-to-Speech client with credentials from env
 const ttsClient = new textToSpeech.TextToSpeechClient({
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
+  credentials: googleCredentials
 });
 
 app.use(cors());
@@ -218,7 +227,7 @@ app.post('/speak', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🟢 Server is running on port ${PORT}`);
   console.log(`OpenAI API Key loaded: ${!!process.env.OPENAI_API_KEY}`);
-  console.log(`Google TTS Client loaded with key: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}`);
+  console.log(`Google TTS Client loaded with credentials from env var GOOGLE_API_KEY_JSON`);
   console.log(`YouTube API Key loaded: ${!!process.env.YOUTUBE_API_KEY}`);
   console.log(`Google CSE API Key loaded: ${!!process.env.GOOGLE_CSE_API_KEY}`);
   console.log(`Google CSE CX loaded: ${!!process.env.GOOGLE_CSE_CX}`);
