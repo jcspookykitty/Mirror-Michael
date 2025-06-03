@@ -3,15 +3,6 @@ const input = document.getElementById('thought-input');
 const chatBox = document.getElementById('chat-box');
 const audioPlayer = document.getElementById('audio-player'); // For ElevenLabs audio playback
 
-// Ensure these HTML elements exist in your index.html
-// <form id="thought-form">
-//   <input type="text" id="thought-input" placeholder="Say something...">
-//   <button type="submit">Send</button>
-// </form>
-// <div id="chat-box"></div>
-// <audio id="audio-player" controls autoplay style="display:none;"></audio>
-
-
 // Event Listener for form submission (user sending a message)
 form.addEventListener('submit', async (e) => {
   e.preventDefault(); // Prevent default form submission behavior (page reload)
@@ -126,12 +117,7 @@ function addMessage(sender, text) {
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// You might also want to implement the /search (Google CSE) functionality
-// if Michael decides to do a general web search, similar to how Youtube is handled.
-// If Michael's prompt for /thought also includes a "general_search" action,
-// you would add a similar if/else if block in the form.addEventListener logic
-// to call a corresponding searchWeb(query) function.
-/*
+// Custom Search
 async function searchWeb(query) {
     try {
         const response = await fetch('/search', {
