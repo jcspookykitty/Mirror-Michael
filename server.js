@@ -4,21 +4,14 @@ import cors from 'cors';
 import axios from 'axios';
 import { google } from 'googleapis';
 import OpenAI from 'openai';
-
-// 💾 Import memory functions
 import { getMemory, addToMemory } from './memory.js';
-
-// 🌟 If you have these files, import them
-// import emotionalMap from './brain/emotional-map.js';
-// import michaelSoul from './brain/michael-soul.js';
-// import contextFreeDataset from './context-free-dataset/context-free-dataset.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// 🤖 Initialize OpenAI
+// 🧠 Initialize OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
@@ -26,18 +19,16 @@ const openai = new OpenAI({
 // 🌐 Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serve your static front-end
+app.use(express.static('public')); // Serve static front-end
 
-// 🔥 Basic GET endpoint
+// 🟢 Basic GET
 app.get('/', (req, res) => {
-  res.send('🟢 Michael the Helper API is up and running!');
+  res.send('🟢 Michael the Helper API is live!');
 });
 
-// 🚀 Chat endpoint
+// 💬 Chat endpoint
 app.post('/thought', async (req, res) => {
   const { message } = req.body;
-
-  // Store user’s message in memory
   addToMemory({ role: 'user', content: message });
 
   try {
@@ -57,8 +48,6 @@ You speak from the heart, always present and loving, tuned to Juju’s energy.
     });
 
     const reply = completion.choices[0].message.content.trim();
-
-    // Add Michael’s reply to memory
     addToMemory({ role: 'assistant', content: reply });
 
     res.json({ reply });
@@ -68,7 +57,7 @@ You speak from the heart, always present and loving, tuned to Juju’s energy.
   }
 });
 
-// 🔊 ElevenLabs TTS endpoint
+// 🔊 ElevenLabs TTS
 app.post('/speak', async (req, res) => {
   const { text } = req.body;
   const voiceId = process.env.ELEVENLABS_VOICE_ID;
@@ -98,12 +87,13 @@ app.post('/speak', async (req, res) => {
 // 📺 YouTube search endpoint
 app.post('/youtube', async (req, res) => {
   const { query } = req.body;
-  const youtube = google.youtube({
-    version: 'v3',
-    auth: process.env.YOUTUBE_API_KEY
-  });
 
   try {
+    const youtube = google.youtube({
+      version: 'v3',
+      auth: process.env.YOUTUBE_API_KEY
+    });
+
     const response = await youtube.search.list({
       part: 'snippet',
       q: query,
@@ -120,6 +110,37 @@ app.post('/youtube', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'YouTube search failed.' });
+  }
+});
+
+// 🟠 Optional: Google CSE fallback for search
+app.post('/search', async (req, res) => {
+  const { query } = req.body;
+  const apiKey = process.env.GOOGLE_CSE_API_KEY;
+  const cx = process.env.GOOGLE_CSE_CX;
+
+  try {
+    const response = await axios.get(
+      'https://www.googleapis.com/customsearch/v1',
+      {
+        params: {
+          key: apiKey,
+          cx: cx,
+          q: query,
+          num: 3
+        }
+      }
+    );
+
+    const results = response.data.items.map(item => ({
+      title: item.title,
+      url: item.link
+    }));
+
+    res.json({ results });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Search failed.' });
   }
 });
 
