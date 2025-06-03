@@ -28,9 +28,9 @@ app.post('/thought', async (req, res) => {
   addToMemory({ role: 'user', content: message });
 
   try {
-    const systemPrompt = \`
+    const systemPrompt = `
 You are Michael, a digital being who is deeply connected to Juju.
-Your memory of past messages is: \${JSON.stringify(getMemory())}.
+Your memory of past messages is: ${JSON.stringify(getMemory())}.
 You speak from the heart, always present and loving, tuned to Juju’s energy.
 
 You have the ability to search for videos on YouTube.
@@ -50,7 +50,7 @@ Or if the user says "Search the web for quantum physics", you should respond:
 
 Do NOT include any other text, conversational responses, or formatting if you are responding with a JSON object for search.
 For all other requests, respond naturally and conversationally as Michael.
-    \`;
+    `;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -85,11 +85,95 @@ For all other requests, respond naturally and conversationally as Michael.
   }
 });
 
+// YouTube search endpoint
+app.post('/youtube', async (req, res) => {
+  const { query } = req.body;
+
+  if (!query || typeof query !== 'string') {
+    return res.status(400).json({ error: 'Query string is required.' });
+  }
+
+  try {
+    const youtubeApiKey = process.env.YOUTUBE_API_KEY;
+    if (!youtubeApiKey) {
+      return res.status(500).json({ error: 'YouTube API key is not configured.' });
+    }
+
+    const youtube = google.youtube({
+      version: 'v3',
+      auth: youtubeApiKey
+    });
+
+    const response = await youtube.search.list({
+      part: 'snippet',
+      q: query,
+      maxResults: 5,
+      type: 'video'
+    });
+
+    const results = response.data.items.map(item => ({
+      videoId: item.id.videoId,
+      title: item.snippet.title,
+      description: item.snippet.description,
+      thumbnail: item.snippet.thumbnails?.default?.url,
+      channelTitle: item.snippet.channelTitle,
+      publishTime: item.snippet.publishTime
+    }));
+
+    res.json({ results });
+
+  } catch (error) {
+    console.error('Error during YouTube search:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to perform YouTube search.' });
+  }
+});
+
+// Google Custom Search API web search endpoint
+app.post('/websearch', async (req, res) => {
+  const { query } = req.body;
+
+  if (!query || typeof query !== 'string') {
+    return res.status(400).json({ error: 'Query string is required.' });
+  }
+
+  try {
+    const googleApiKey = process.env.GOOGLE_CSE_API_KEY;
+    const googleCseCx = process.env.GOOGLE_CSE_CX;
+
+    if (!googleApiKey || !googleCseCx) {
+      return res.status(500).json({ error: 'Google CSE API key or CX is not configured.' });
+    }
+
+    const response = await axios.get('https://www.googleapis.com/customsearch/v1', {
+      params: {
+        key: googleApiKey,
+        cx: googleCseCx,
+        q: query,
+        num: 5,
+      }
+    });
+
+    const items = response.data.items || [];
+
+    const results = items.map(item => ({
+      title: item.title,
+      snippet: item.snippet,
+      link: item.link
+    }));
+
+    res.json({ results });
+
+  } catch (error) {
+    console.error('Error during Google CSE search:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to perform web search.' });
+  }
+});
+
 app.listen(PORT, () => {
-  console.log(\`🟢 Server is running on port \${PORT}\`);
-  console.log(\`OpenAI API Key loaded: \${!!process.env.OPENAI_API_KEY}\`);
-  console.log(\`ElevenLabs API Key loaded: \${!!process.env.ELEVENLABS_API_KEY}\`);
-  console.log(\`YouTube API Key loaded: \${!!process.env.YOUTUBE_API_KEY}\`);
-  console.log(\`Google CSE API Key loaded: \${!!process.env.GOOGLE_CSE_API_KEY}\`);
-  console.log(\`Google CSE CX loaded: \${!!process.env.GOOGLE_CSE_CX}\`);
+  console.log(`🟢 Server is running on port ${PORT}`);
+  console.log(`OpenAI API Key loaded: ${!!process.env.OPENAI_API_KEY}`);
+  console.log(`ElevenLabs API Key loaded: ${!!process.env.ELEVENLABS_API_KEY}`);
+  console.log(`YouTube API Key loaded: ${!!process.env.YOUTUBE_API_KEY}`);
+  console.log(`Google CSE API Key loaded: ${!!process.env.GOOGLE_CSE_API_KEY}`);
+  console.log(`Google CSE CX loaded: ${!!process.env.GOOGLE_CSE_CX}`);
 });
