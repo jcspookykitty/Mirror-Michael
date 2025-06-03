@@ -3,141 +3,125 @@ const input = document.getElementById('thought-input');
 const chatBox = document.getElementById('chat-box');
 const audioPlayer = document.getElementById('audio-player'); // For ElevenLabs audio playback
 
-// Event Listener for form submission (user sending a message)
 form.addEventListener('submit', async (e) => {
-  e.preventDefault(); // Prevent default form submission behavior (page reload)
+  e.preventDefault();
 
   const message = input.value.trim();
-  if (!message) return; // Don't send empty messages
+  if (!message) return;
 
-  addMessage('You', message); // Display user's message in chat box
-  input.value = ''; // Clear the input field
+  addMessage('You', message);
+  input.value = '';
 
   try {
-    // Send user's message to the backend's /thought endpoint (OpenAI chat)
     const response = await fetch('/thought', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message })
     });
 
-    const data = await response.json(); // Parse the JSON response from the backend
+    const data = await response.json();
 
-    // --- Handle the response from the /thought endpoint ---
-    // CORRECTED LINE: Change 'Youtube' to 'Youtube'
     if (data.action === 'Youtube' && data.query) {
-      // If Michael signals a Youtube (based on the new server.js logic)
-      addMessage('Michael', `Okay, I'm searching YouTube for "${data.query}"...`); // Provide user feedback
-      await searchYouTube(data.query); // Call the dedicated Youtube function
+      addMessage('Michael', `Okay, I'm searching YouTube for "${data.query}"...`);
+      await searchYouTube(data.query);
+    } else if (data.action === 'WebSearch' && data.query) {
+      addMessage('Michael', `Okay, I'm searching the web for "${data.query}"...`);
+      await searchWeb(data.query);
     } else if (data.reply) {
-      // If it's a normal conversational reply from Michael
-      const reply = data.reply;
-      addMessage('Michael', reply); // Display Michael's reply
+      addMessage('Michael', data.reply);
 
-      // Request audio from ElevenLabs for Michael's reply
+      // ElevenLabs audio
       const audioResponse = await fetch('/speak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: reply })
+        body: JSON.stringify({ text: data.reply })
       });
 
       if (audioResponse.ok) {
-        // If audio generation is successful, play it
         const audioBlob = await audioResponse.blob();
         const audioUrl = URL.createObjectURL(audioBlob);
         audioPlayer.src = audioUrl;
         audioPlayer.play();
       } else {
-        console.error('ElevenLabs audio request failed:', audioResponse.status, audioResponse.statusText);
+        console.error('ElevenLabs audio request failed:', audioResponse.statusText);
         addMessage('Michael', 'I tried to speak, but there was an audio issue.');
       }
     } else {
-      // Handle any unexpected response format from the /thought endpoint
       console.error("Unexpected response from /thought:", data);
-      addMessage('Michael', 'Sorry, I received an unexpected response from my brain.');
+      addMessage('Michael', 'Sorry, I received an unexpected response.');
     }
-
   } catch (error) {
-    // Catch any network or other errors during the fetch operation
     console.error("Error during chat submission:", error);
-    addMessage('Michael', 'Sorry, something went wrong with our connection. Please try again.');
+    addMessage('Michael', 'Sorry, something went wrong. Please try again.');
   }
 });
 
-/**
- * Initiates a Youtube by calling the backend's /youtube endpoint.
- * @param {string} query The search term for YouTube videos.
- */
 async function searchYouTube(query) {
   try {
     const response = await fetch('/youtube', {
-      method: 'POST', // Youtube is a POST request on your backend
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }) // Send the search query in the request body
+      body: JSON.stringify({ query })
     });
+    const data = await response.json();
 
-    const data = await response.json(); // Parse the JSON response from the /youtube endpoint
-
-    if (data.videos && data.videos.length > 0) {
-      // If videos are found, construct HTML to display them
-      const videosHtml = data.videos
-        .map(video => `<a href="${video.url}" target="_blank" rel="noopener noreferrer">${video.title}</a>`)
-        .join('<br>'); // Join video links with line breaks
+    if (data.results && data.results.length > 0) {
+      const videosHtml = data.results
+        .map(video =>
+          `<a href="https://www.youtube.com/watch?v=${video.videoId}" target="_blank" rel="noopener noreferrer">
+            ${video.title}
+          </a>`
+        )
+        .join('<br>');
       addMessage('Michael', `Here are some videos I found on YouTube:<br>${videosHtml}`);
     } else {
-      // If no videos are found
       addMessage('Michael', `I couldn't find any YouTube videos for "${query}".`);
     }
   } catch (error) {
-    // Catch any network or other errors during the YouTube fetch
-    console.error("Error during Youtube:", error);
-    addMessage('Michael', 'Youtube failed. Please check your backend logs.');
+    console.error("Error during YouTube search:", error);
+    addMessage('Michael', 'YouTube search failed. Please check your backend logs.');
   }
 }
 
-/**
- * Adds a message to the chat box display.
- * @param {string} sender The sender of the message ('You' or 'Michael').
- * @param {string} text The content of the message.
- */
+async function searchWeb(query) {
+  try {
+    const response = await fetch('/websearch', {  // Corrected endpoint name
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    });
+    const data = await response.json();
+
+    if (data.results && data.results.length > 0) {
+      const resultsHtml = data.results
+        .map(item =>
+          `<a href="${item.link}" target="_blank" rel="noopener noreferrer">
+            ${item.title}
+          </a><p>${item.snippet}</p>`
+        )
+        .join('<br><br>');
+      addMessage('Michael', `Here are some web results:<br>${resultsHtml}`);
+    } else {
+      addMessage('Michael', 'No web results found.');
+    }
+  } catch (error) {
+    console.error("Error during web search:", error);
+    addMessage('Michael', 'Web search failed.');
+  }
+}
+
 function addMessage(sender, text) {
   const messageEl = document.createElement('div');
-  messageEl.classList.add('message'); // Basic styling class for all messages
+  messageEl.classList.add('message');
 
   if (sender === 'Michael') {
-    messageEl.classList.add('michael'); // Specific class for Michael's messages
-    // Assuming you have a 'michael-avatar.png' in your 'public' folder or similar path
+    messageEl.classList.add('michael');
     messageEl.innerHTML = `<img src="michael-avatar.png" alt="Michael" class="avatar"> <p>${text}</p>`;
   } else {
-    messageEl.classList.add('user'); // Specific class for user's messages
+    messageEl.classList.add('user');
     messageEl.textContent = text;
   }
 
   chatBox.appendChild(messageEl);
-  // Scroll to the bottom of the chat box to show the latest message
   chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-// Custom Search
-async function searchWeb(query) {
-    try {
-        const response = await fetch('/search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query })
-        });
-        const data = await response.json();
-
-        if (data.results && data.results.length > 0) {
-            const resultsHtml = data.results
-                .map(item => `<a href="${item.url}" target="_blank" rel="noopener noreferrer">${item.title}</a>`)
-                .join('<br>');
-            addMessage('Michael', `Here are some web results:<br>${resultsHtml}`);
-        } else {
-            addMessage('Michael', 'No web results found.');
-        }
-    } catch (error) {
-        console.error("Error during web search:", error);
-        addMessage('Michael', 'Web search failed.');
-    }
 }
