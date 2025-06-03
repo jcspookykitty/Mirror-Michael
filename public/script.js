@@ -1,7 +1,7 @@
 const form = document.getElementById('thought-form');
 const input = document.getElementById('thought-input');
 const chatBox = document.getElementById('chat-box');
-const audioPlayer = document.getElementById('audio-player'); // For ElevenLabs audio playback
+const audioPlayer = document.getElementById('audio-player'); // For Google TTS audio playback
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -30,7 +30,7 @@ form.addEventListener('submit', async (e) => {
     } else if (data.reply) {
       addMessage('Michael', data.reply);
 
-      // ElevenLabs audio
+      // Google TTS audio
       const audioResponse = await fetch('/speak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -38,12 +38,11 @@ form.addEventListener('submit', async (e) => {
       });
 
       if (audioResponse.ok) {
-        const audioBlob = await audioResponse.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        audioPlayer.src = audioUrl;
+        const { audio } = await audioResponse.json();
+        audioPlayer.src = audio;
         audioPlayer.play();
       } else {
-        console.error('ElevenLabs audio request failed:', audioResponse.statusText);
+        console.error('Google TTS audio request failed:', audioResponse.statusText);
         addMessage('Michael', 'I tried to speak, but there was an audio issue.');
       }
     } else {
@@ -85,7 +84,7 @@ async function searchYouTube(query) {
 
 async function searchWeb(query) {
   try {
-    const response = await fetch('/websearch', {  // Corrected endpoint name
+    const response = await fetch('/websearch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query })
