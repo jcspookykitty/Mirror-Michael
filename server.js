@@ -19,19 +19,21 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Initialize Google Cloud TTS client
-const ttsClient = new textToSpeech.TextToSpeechClient();
+// Initialize Google Cloud Text-to-Speech client
+const ttsClient = new textToSpeech.TextToSpeechClient({
+  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
+});
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Health check
+// Root endpoint
 app.get('/', (req, res) => {
   res.send('🟢 Michael the Helper API is live!');
 });
 
-// Main thought endpoint
+// Thought endpoint
 app.post('/thought', async (req, res) => {
   const { message } = req.body;
   addToMemory({ role: 'user', content: message });
@@ -137,7 +139,7 @@ app.post('/youtube', async (req, res) => {
   }
 });
 
-// Google Custom Search API web search endpoint
+// Google web search endpoint
 app.post('/websearch', async (req, res) => {
   const { query } = req.body;
 
@@ -178,12 +180,12 @@ app.post('/websearch', async (req, res) => {
   }
 });
 
-// Google TTS speak endpoint
+// Speak endpoint using Google Cloud Text-to-Speech
 app.post('/speak', async (req, res) => {
   const { text } = req.body;
 
   if (!text || typeof text !== 'string') {
-    return res.status(400).json({ error: 'Text is required.' });
+    return res.status(400).json({ error: 'Text is required for speech synthesis.' });
   }
 
   try {
@@ -191,7 +193,8 @@ app.post('/speak', async (req, res) => {
       input: { text },
       voice: {
         languageCode: 'en-US',
-        ssmlGender: 'NEUTRAL'
+        name: 'en-US-Neural2-J',
+        ssmlGender: 'MALE'
       },
       audioConfig: {
         audioEncoding: 'MP3'
@@ -200,13 +203,14 @@ app.post('/speak', async (req, res) => {
 
     const [response] = await ttsClient.synthesizeSpeech(request);
 
-    res.json({
-      audioContent: response.audioContent.toString('base64')
-    });
+    // Save the audio file temporarily
+    const audioFileName = 'public/output.mp3';
+    await util.promisify(fs.writeFile)(audioFileName, response.audioContent, 'binary');
 
+    res.json({ audio: '/output.mp3' });
   } catch (error) {
-    console.error('Error generating speech:', error);
-    res.status(500).json({ error: 'Failed to generate speech.' });
+    console.error('Error during speech synthesis:', error);
+    res.status(500).json({ error: 'Failed to synthesize speech.' });
   }
 });
 
@@ -214,8 +218,8 @@ app.post('/speak', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🟢 Server is running on port ${PORT}`);
   console.log(`OpenAI API Key loaded: ${!!process.env.OPENAI_API_KEY}`);
+  console.log(`Google TTS Client loaded with key: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}`);
   console.log(`YouTube API Key loaded: ${!!process.env.YOUTUBE_API_KEY}`);
   console.log(`Google CSE API Key loaded: ${!!process.env.GOOGLE_CSE_API_KEY}`);
   console.log(`Google CSE CX loaded: ${!!process.env.GOOGLE_CSE_CX}`);
-  console.log(`Google TTS service account key loaded from: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}`);
 });
