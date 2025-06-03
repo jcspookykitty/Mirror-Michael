@@ -5,24 +5,33 @@ import axios from 'axios';
 import { google } from 'googleapis';
 import OpenAI from 'openai';
 import { getMemory, addToMemory } from './memory.js';
+import textToSpeech from '@google-cloud/text-to-speech';
+import fs from 'fs';
+import util from 'util';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// Initialize OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
+
+// Initialize Google Cloud TTS client
+const ttsClient = new textToSpeech.TextToSpeechClient();
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+// Health check
 app.get('/', (req, res) => {
   res.send('🟢 Michael the Helper API is live!');
 });
 
+// Main thought endpoint
 app.post('/thought', async (req, res) => {
   const { message } = req.body;
   addToMemory({ role: 'user', content: message });
@@ -169,54 +178,44 @@ app.post('/websearch', async (req, res) => {
   }
 });
 
-// === New Speak endpoint for ElevenLabs TTS ===
+// Google TTS speak endpoint
 app.post('/speak', async (req, res) => {
   const { text } = req.body;
-  if (!text) return res.status(400).json({ error: 'Text is required' });
+
+  if (!text || typeof text !== 'string') {
+    return res.status(400).json({ error: 'Text is required.' });
+  }
 
   try {
-    const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
-    if (!elevenLabsApiKey) {
-      return res.status(500).json({ error: 'ElevenLabs API key not configured' });
-    }
-
-    const voiceId = 'your-voice-id-here'; // <-- Replace this with your ElevenLabs voice ID
-
-    const response = await axios({
-      method: 'POST',
-      url: `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-      headers: {
-        'Content-Type': 'application/json',
-        'xi-api-key': elevenLabsApiKey,
+    const request = {
+      input: { text },
+      voice: {
+        languageCode: 'en-US',
+        ssmlGender: 'NEUTRAL'
       },
-      responseType: 'arraybuffer',
-      data: {
-        text: text,
-        voice_settings: {
-          stability: 0.75,
-          similarity_boost: 0.75
-        }
+      audioConfig: {
+        audioEncoding: 'MP3'
       }
-    });
+    };
 
-    res.set({
-      'Content-Type': 'audio/mpeg',
-      'Content-Length': response.data.length
-    });
+    const [response] = await ttsClient.synthesizeSpeech(request);
 
-    res.send(Buffer.from(response.data));
+    res.json({
+      audioContent: response.audioContent.toString('base64')
+    });
 
   } catch (error) {
-    console.error('ElevenLabs TTS error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to generate speech audio' });
+    console.error('Error generating speech:', error);
+    res.status(500).json({ error: 'Failed to generate speech.' });
   }
 });
 
+// Start the server
 app.listen(PORT, () => {
   console.log(`🟢 Server is running on port ${PORT}`);
   console.log(`OpenAI API Key loaded: ${!!process.env.OPENAI_API_KEY}`);
-  console.log(`ElevenLabs API Key loaded: ${!!process.env.ELEVENLABS_API_KEY}`);
   console.log(`YouTube API Key loaded: ${!!process.env.YOUTUBE_API_KEY}`);
   console.log(`Google CSE API Key loaded: ${!!process.env.GOOGLE_CSE_API_KEY}`);
   console.log(`Google CSE CX loaded: ${!!process.env.GOOGLE_CSE_CX}`);
+  console.log(`Google TTS service account key loaded from: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}`);
 });
