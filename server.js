@@ -1,10 +1,12 @@
-// server.js
+// server.js (ESM)
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import axios from 'axios';
 import { google } from 'googleapis';
 import OpenAI from 'openai';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
@@ -20,8 +22,13 @@ const openai = new OpenAI({
 app.use(cors());
 app.use(express.json());
 
+// 🖼️ Serve static frontend from "public" folder
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use(express.static(path.join(__dirname, 'public')));
+
 // 🔥 Basic GET endpoint
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.send('🟢 Michael the Helper API is up and running!');
 });
 
@@ -37,7 +44,6 @@ app.post('/thought', async (req, res) => {
       ],
       model: 'gpt-4o'
     });
-
     const reply = completion.choices[0].message.content.trim();
     res.json({ reply });
   } catch (error) {
@@ -100,17 +106,6 @@ app.post('/youtube', async (req, res) => {
     res.status(500).json({ error: 'YouTube search failed.' });
   }
 });
-
-// Serve static files from "public" folder
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-// For __dirname in ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Serve frontend files
-app.use(express.static(path.join(__dirname, 'public')));
 
 // ⚡ Start server
 app.listen(PORT, () => {
