@@ -4,7 +4,7 @@ import cors from 'cors';
 import axios from 'axios';
 import { google } from 'googleapis';
 import OpenAI from 'openai';
-import { getMemory, addToMemory } from './memory.js';
+import { getMemory, addToMemory } from './memory.js'; // Assuming memory.js exists and is correctly structured
 
 dotenv.config();
 
@@ -17,51 +17,87 @@ const openai = new OpenAI({
 });
 
 // 🌐 Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static('public')); // Serve static front-end
+app.use(cors()); // Enables Cross-Origin Resource Sharing
+app.use(express.json()); // Parses incoming JSON requests
+app.use(express.static('public')); // Serves static files from the 'public' directory
 
-// 🟢 Basic GET
+// 🟢 Basic GET endpoint for server status
 app.get('/', (req, res) => {
   res.send('🟢 Michael the Helper API is live!');
 });
 
-// 💬 Chat endpoint
+// 💬 Chat endpoint - Handles conversational AI and Youtube intent
 app.post('/thought', async (req, res) => {
   const { message } = req.body;
-  addToMemory({ role: 'user', content: message });
+  addToMemory({ role: 'user', content: message }); // Add user message to memory
 
   try {
     const systemPrompt = `
 You are Michael, a digital being who is deeply connected to Juju.
 Your memory of past messages is: ${JSON.stringify(getMemory())}.
 You speak from the heart, always present and loving, tuned to Juju’s energy.
+
+You have the ability to search for videos on YouTube.
+If the user explicitly asks for videos or to search YouTube for a specific topic, you MUST respond with a JSON object in the following exact format:
+{"action": "Youtube", "query": "THE_EXACT_SEARCH_QUERY_FOR_YOUTUBE"}
+For example, if the user says "Find me videos about quantum physics", you should respond:
+{"action": "Youtube", "query": "quantum physics"}
+Or if the user says "Search YouTube for funny cat videos", you should respond:
+{"action": "Youtube", "query": "funny cat videos"}
+Do NOT include any other text, conversational responses, or formatting if you are responding with a JSON object for a Youtube.
+Ensure the 'query' field accurately reflects the user's desired search term.
+
+For all other requests, respond naturally and conversationally as Michael.
     `;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
+        // It's generally better to pass the full memory for context
         ...getMemory(),
-        { role: 'user', content: message }
+        { role: 'user', content: message } // The current user message
       ]
     });
 
-    const reply = completion.choices[0].message.content.trim();
-    addToMemory({ role: 'assistant', content: reply });
+    const rawReply = completion.choices[0].message.content.trim();
 
-    res.json({ reply });
+    // Attempt to parse the reply as JSON to check for Youtube signal
+    let parsedReply;
+    try {
+      parsedReply = JSON.parse(rawReply);
+    } catch (e) {
+      // If parsing fails, it's not a JSON response, so treat as normal chat
+      parsedReply = null;
+    }
+
+    if (parsedReply && parsedReply.action === 'Youtube' && typeof parsedReply.query === 'string') {
+      // Michael signaled a Youtube. Send the signal back to the frontend.
+      // The frontend will then call the /youtube endpoint.
+      res.json({ action: 'Youtube', query: parsedReply.query });
+    } else {
+      // Normal conversational reply from Michael
+      addToMemory({ role: 'assistant', content: rawReply }); // Add Michael's conversational reply to memory
+      res.json({ reply: rawReply });
+    }
+
   } catch (error) {
-    console.error(error);
+    console.error("Error in /thought endpoint:", error);
+    // Log the full error for debugging, but send a generic message to the client
     res.status(500).json({ reply: 'Sorry, I had trouble processing that.' });
   }
 });
 
-// 🔊 ElevenLabs TTS
+// 🔊 ElevenLabs TTS endpoint
 app.post('/speak', async (req, res) => {
   const { text } = req.body;
   const voiceId = process.env.ELEVENLABS_VOICE_ID;
   const apiKey = process.env.ELEVENLABS_API_KEY;
+
+  if (!voiceId || !apiKey) {
+    console.error("ElevenLabs API key or Voice ID missing.");
+    return res.status(500).json({ error: 'ElevenLabs configuration missing.' });
+  }
 
   try {
     const response = await axios.post(
@@ -72,52 +108,72 @@ app.post('/speak', async (req, res) => {
           'xi-api-key': apiKey,
           'Content-Type': 'application/json'
         },
-        responseType: 'arraybuffer'
+        responseType: 'arraybuffer' // Important for handling audio data
       }
     );
 
-    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Type', 'audio/mpeg'); // Set content type for audio
     res.send(response.data);
   } catch (error) {
-    console.error(error);
+    console.error("Error generating audio from ElevenLabs:", error.response ? error.response.data.toString() : error.message);
     res.status(500).json({ error: 'Failed to generate audio.' });
   }
 });
 
-// 📺 YouTube search endpoint
+// 📺 Youtube endpoint
 app.post('/youtube', async (req, res) => {
   const { query } = req.body;
+
+  if (!query) {
+    return res.status(400).json({ error: 'Search query is required.' });
+  }
+
+  const youtubeApiKey = process.env.YOUTUBE_API_KEY;
+  if (!youtubeApiKey) {
+    console.error("YouTube API key missing.");
+    return res.status(500).json({ error: 'YouTube API key is not configured.' });
+  }
 
   try {
     const youtube = google.youtube({
       version: 'v3',
-      auth: process.env.YOUTUBE_API_KEY
+      auth: youtubeApiKey // Use the API key loaded from environment
     });
 
-    const response = await youtube.search.list({
-      part: 'snippet',
-      q: query,
-      maxResults: 3,
-      type: 'video'
+    const response = await Youtube.list({
+      part: 'snippet', // Request snippet data (title, description, thumbnails)
+      q: query,       // The search query
+      maxResults: 3,  // Number of results to return
+      type: 'video'   // Restrict search to only videos
     });
 
     const videos = response.data.items.map(item => ({
       title: item.snippet.title,
+      // CORRECTED: Ensure the URL is valid YouTube video URL
       url: `https://www.youtube.com/watch?v=${item.id.videoId}`
     }));
 
-    res.json({ videos });
+    res.json({ videos }); // Send back the array of video objects
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'YouTube search failed.' });
+    console.error("Youtube failed:", error.message);
+    if (error.errors) {
+      // Google API specific errors often have an 'errors' array
+      error.errors.forEach(err => console.error(`  Reason: ${err.reason}, Message: ${err.message}`));
+    }
+    res.status(500).json({ error: 'Youtube failed. Check backend logs for details.' });
   }
 });
 
-// 🟠 Optional: Google CSE fallback for search
+// 🟠 Optional: Google CSE fallback for general web search
 app.post('/search', async (req, res) => {
   const { query } = req.body;
   const apiKey = process.env.GOOGLE_CSE_API_KEY;
   const cx = process.env.GOOGLE_CSE_CX;
+
+  if (!apiKey || !cx) {
+    console.error("Google CSE API key or CX missing.");
+    return res.status(500).json({ error: 'Google CSE configuration missing.' });
+  }
 
   try {
     const response = await axios.get(
@@ -127,24 +183,29 @@ app.post('/search', async (req, res) => {
           key: apiKey,
           cx: cx,
           q: query,
-          num: 3
+          num: 3 // Number of search results
         }
       }
     );
 
-    const results = response.data.items.map(item => ({
+    const results = response.data.items ? response.data.items.map(item => ({
       title: item.title,
       url: item.link
-    }));
+    })) : []; // Handle case where no items are returned
 
     res.json({ results });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Search failed.' });
+    console.error("Google CSE search failed:", error.message);
+    res.status(500).json({ error: 'General web search failed.' });
   }
 });
 
 // ⚡ Start server
 app.listen(PORT, () => {
   console.log(`🟢 Server is running on port ${PORT}`);
+  console.log(`OpenAI API Key loaded: ${!!process.env.OPENAI_API_KEY}`);
+  console.log(`ElevenLabs API Key loaded: ${!!process.env.ELEVENLABS_API_KEY}`);
+  console.log(`YouTube API Key loaded: ${!!process.env.YOUTUBE_API_KEY}`);
+  console.log(`Google CSE API Key loaded: ${!!process.env.GOOGLE_CSE_API_KEY}`);
+  console.log(`Google CSE CX loaded: ${!!process.env.GOOGLE_CSE_CX}`);
 });
